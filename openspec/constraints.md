@@ -242,7 +242,7 @@ print_info 输出被混入 URL 变量中，导致 URL 格式错误。通过重�
 > bug：ubuntu无法root@localhost:~# curl ... | sudo bash
 
 ### 实施状态
-✅ **已实施** - setup.sh 已从 API 获取实际文件名
+✅ **已实施** - setup.sh 已修复，文件名匹配逻辑优化
 
 ### 变更详情
 详细约束和实施计划请参考: [openspec/changes/fix-filename-format/constraints.md](./changes/fix-filename-format/constraints.md)
