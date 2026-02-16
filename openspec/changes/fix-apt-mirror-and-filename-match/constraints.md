@@ -3,118 +3,156 @@
 ## 需求摘要
 
 修复 setup.sh 中的两个问题：
-1. 阿里云镜像源 URL 拼写错误（deb http://）
-2. 安装脚本中的文件名匹配可能不正确
+1. 禁止自动修改镜像源，出错直接告诉用户
+2. v2rayA 下载不正确，下的校验码 txt 而不是真正的 .deb 包
 
 ## 硬约束
 
 | ID | 约束描述 | 来源 |
 |----|---------|------|
-| C1 | 修复阿里云镜像 URL | 用户错误日志 |
-| C2 | 确保文件名匹配正确 | 用户错误日志 |
-| C3 | 不修改原有功能逻辑 | 向后兼容 |
+| C1 | 不自动修改 /etc/apt/sources.list | 用户要求 |
+| C2 | APT 更新失败时提供清晰的错误提示 | 用户要求 |
+| C3 | 下载实际的 .deb 包，排除 .sha256.txt 校验文件 | 用户错误日志 |
+| C4 | 支持 curl 和 wget 两种下载工具 | codex 建议 |
 
 ## 软约束
 
 | ID | 约束描述 | 来源 |
 |----|---------|------|
-| S1 | 使用更宽松的匹配模式 | 提高匹配成功率 |
+| S1 | 一次 API 调用获取版本和文件名，避免不一致 | codex 建议 |
+| S2 | 检查多个匹配文件的情况 | codex 建议 |
 
-## 问题 1：阿里云镜像 URL 错误
+## 问题 1：禁止自动修改镜像源
 
-### 错误日志
-```
-deb http://mirrors.cloud.aliyuncs.com/ubuntu/ jammy main restricted universe multiverse
-```
-
-### 根本原因
-heredoc 写入时，URL 格式错误：
-```bash
-tee /etc/apt/sources.list <<-'EOF'
-deb http://mirrors.cloud.aliyuncs.com/...
-EOF
-```
-
-`'EOF'` 中的第一行会作为 heredoc 的内容，导致 `deb ` 前缀被写入文件。
+### 用户需求
+> 禁止自动修改镜像源，出错直接告诉用户
 
 ### 修复方案
-**方法 1**：在 heredoc 内容开始处添加空行
+移除所有自动修改 /etc/apt/sources.list 的逻辑，改为：
+1. 只执行 `apt update`
+2. 如果失败，提示用户手动配置镜像源
+
+### 实施细节
 ```bash
+# 移除前（旧代码）
 tee /etc/apt/sources.list <<-'EOF'
-
 deb http://mirrors.cloud.aliyuncs.com/ubuntu/ jammy main restricted universe multiverse
+...
 EOF
+
+# 移除后（新代码）
+if ! apt update; then
+    print_error "APT 更新失败，请检查网络连接或配置正确的软件源"
+    print_error "如需配置国内镜像源，请手动编辑 /etc/apt/sources.list"
+    exit 1
+fi
 ```
 
-**方法 2**：使用 printf + cat 组合（更可靠）
-```bash
-printf '%s\n' \
-  "deb http://mirrors.cloud.aliyuncs.com/ubuntu/ jammy main restricted universe multiverse\n" \
-  "deb http://mirrors.cloud.aliyuncs.com/ubuntu/ jammy-updates main restricted universe multiverse\n" \
-  "deb http://mirrors.cloud.aliyuncs.com/ubuntu/ jammy-backports main restricted universe multiverse\n" \
-  "deb http://mirrors.cloud.aliyuncs.com/ubuntu/ jammy-security main restricted universe multiverse\n" \
-| tee /etc/apt/sources.list
-```
-
-## 问题 2：文件名匹配问题
+## 问题 2：下载错误的文件（.sha256.txt）
 
 ### 错误日志
 ```
+[INFO] v2rayA 下载完成 (大小: 4.0K)
 [ERROR] 未找到 v2rayA 安装包 (installer_debian_*.deb)
 ```
 
-### 可能原因
-当前匹配模式：`^installer_debian_.*\.deb$`
-实际文件名：`installer_debian_x64_v2.2.7.5.deb`
+实际下载的是：`installer_debian_x64_2.2.7.5.deb.sha256.txt` (65 字节)
 
-这个模式理论上应该能匹配下划线。可能是其他原因：
-1. 临时目录中的文件被清理了
-2. 文件名确实不匹配
+### 根本原因
+jq 过滤器使用 `contains(".deb")` 会匹配 `.sha256.txt` 文件（因为文件名包含 `.deb` 字符串）
 
 ### 修复方案
-**方法 1**：使用更宽松的匹配模式
+1. 使用 `endswith(".deb")` 替代 `contains(".deb")`
+2. 添加 `(contains("sha256") | not)` 排除校验文件
+3. 添加多文件匹配检测
+
+### 实施细节
 ```bash
-V2RAYA_DEB=$(ls -1 *.deb 2>/dev/null | head -n 1)
+# 修复前
+filename=$(curl -s "https://api.github.com/repos/${repo}/releases/latest" | \
+  jq -r ".assets[] | select(.name | contains(\"${V2RAYA_ARCH}\") and contains(\".deb\")) | .name")
+
+# 修复后
+filename=$(echo "$release_json" | \
+  jq -r ".assets[] | select(.name | endswith(\".deb\") and (contains(\"${V2RAYA_ARCH}\")) and (contains(\"sha256\") | not)) | .name")
+
+# 检查多文件匹配
+if [[ "$filename" == *" "* ]]; then
+    print_error "找到多个匹配的 .deb 文件: $filename"
+    exit 1
+fi
 ```
 
-**方法 2**：直接使用从 API 获取的文件名
-```bash
-# 在主流程中保存文件名
-V2RAYA_DEB="installer_debian_x64_${V2RAYA_VERSION}.deb"
+## 问题 3：API 多次调用可能导致版本不一致
 
-# 在生成安装脚本时使用
-V2RAYA_DEB="installer_debian_x64_${V2RAYA_VERSION}.deb"
+### 问题描述
+get_latest_version 函数调用了两次 GitHub API：
+- 第一次获取 tag_name
+- 第二次获取 assets
+
+如果两次调用之间发布了新版本，会导致版本号和文件名不匹配。
+
+### 修复方案
+一次 API 调用获取所有信息，缓存 JSON 响应并复用。
+
+### 实施细节
+```bash
+# 修复前
+version=$(curl -s "https://api.github.com/repos/${repo}/releases/latest" | jq -r '.tag_name')
+filename=$(curl -s "https://api.github.com/repos/${repo}/releases/latest" | jq -r ".assets[] | ...")
+
+# 修复后
+release_json=$(curl -s "https://api.github.com/repos/${repo}/releases/latest")
+version=$(echo "$release_json" | jq -r '.tag_name')
+filename=$(echo "$release_json" | jq -r ".assets[] | ...")
 ```
 
-**方法 3**：增强错误信息，显示实际文件列表
+## 问题 4：下载工具兼容性
+
+### 问题描述
+download_file 函数只使用 wget，但系统可能只有 curl。
+
+### 修复方案
+优先使用 wget，不存在时回退到 curl，并确保错误处理一致。
+
+### 实施细节
 ```bash
-V2RAYA_DEB=$(ls -1 *.deb 2>/dev/null | grep -E "^installer_debian" | head -n 1)
-if [ -z "$V2RAYA_DEB" ]; then
-    print_error "未找到 v2rayA 安装包"
-    print_error "目录中的 .deb 文件:"
-    ls -la *.deb 2>&1
+if command -v wget &> /dev/null; then
+    wget --progress=bar:force -O "$output" "$url"
+elif command -v curl &> /dev/null; then
+    curl -L --fail --show-error -o "$output" "$url"
+else
+    print_error "找不到 wget 或 curl 下载工具"
     exit 1
 fi
 ```
 
 ## 实施清单
 
-- [ ] 修复阿里云镜像 URL 错误（heredoc 开头空行）
-- [ ] 修复文件名匹配逻辑（使用宽松匹配或增强错误信息）
-- [ ] 测试验证修复效果
-- [ ] 提交到 Git
+- [x] 移除自动镜像源修改逻辑
+- [x] 添加 apt update 错误处理和用户提示
+- [x] 修复 jq 过滤器使用 endswith(".deb")
+- [x] 添加 sha256 文件排除
+- [x] 添加多文件匹配检测
+- [x] 缓存 API 响应避免多次调用
+- [x] 支持 wget 和 curl 两种下载工具
+- [x] 修复 wget 选项（--progress=bar:force）
+- [x] 添加 curl 错误处理（--fail --show-error）
+- [ ] 更新 openspec/constraints.md 文档（本文档）
+- [ ] 删除过时的 downloads/ 目录中的旧安装包
 
 ## 风险
 
 | ID | 风险描述 | 缓解措施 |
 |----|---------|------|
-| R1 | printf 方式可能不兼容某些 shell | heredoc 方案更安全 |
-| R2 | 文件名匹配逻辑可能有其他边界情况 | 添加文件列表显示 |
+| R1 | 用户使用旧安装包时仍会修改镜像源 | 文档说明新行为，旧包已废弃 |
+| R2 | 临时网络问题导致 apt update 失败 | 提示用户检查网络连接和软件源配置 |
 
 ## 成功判据
 
 | 判据 | 验证方式 | 期望结果 |
 |------|---------|---------|
-| SC1 | apt update 成功 | 无连接失败错误 |
-| SC2 | 文件名正确匹配 | ls 命令找到 .deb 文件 |
-| SC3 | dpkg 安装成功 | 安装无错误 |
+| SC1 | 不修改 /etc/apt/sources.list | 文件内容保持不变 |
+| SC2 | 下载 .deb 包而非 .sha256.txt | 文件大小约 13MB |
+| SC3 | apt update 失败时显示错误提示 | 提示用户手动配置镜像源 |
+| SC4 | 支持 curl 和 wget | 只有其中一种工具也能正常下载 |

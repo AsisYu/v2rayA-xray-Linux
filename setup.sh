@@ -110,10 +110,20 @@ get_latest_version() {
     local name=$2
     local version
     local filename
+    local release_json
 
     print_info "正在获取 $name 最新版本..."
 
-    version=$(curl -s "https://api.github.com/repos/${repo}/releases/latest" | jq -r '.tag_name')
+    # 一次性获取所有 release 信息，避免多次 API 调用导致版本不一致
+    release_json=$(curl -s "https://api.github.com/repos/${repo}/releases/latest")
+
+    if [ -z "$release_json" ]; then
+        print_error "无法获取 $name 的 release 信息"
+        print_error "请检查网络连接或稍后重试"
+        exit 1
+    fi
+
+    version=$(echo "$release_json" | jq -r '.tag_name')
 
     if [ -z "$version" ] || [ "$version" = "null" ]; then
         print_error "无法获取 $name 的最新版本号"
@@ -126,7 +136,7 @@ get_latest_version() {
     # 获取对应架构的文件名
     if [ "$name" = "v2rayA" ]; then
         # 排除 sha256.txt 校验文件，只下载实际的 .deb 包
-        filename=$(curl -s "https://api.github.com/repos/${repo}/releases/latest" | jq -r ".assets[] | select(.name | endswith(\".deb\") and (contains(\"${V2RAYA_ARCH}\")) and (contains(\"sha256\") | not)) | .name")
+        filename=$(echo "$release_json" | jq -r ".assets[] | select(.name | endswith(\".deb\") and (contains(\"${V2RAYA_ARCH}\")) and (contains(\"sha256\") | not)) | .name")
         if [ -z "$filename" ]; then
             print_error "无法找到 $name 的 ${V2RAYA_ARCH} .deb 文件"
             exit 1
@@ -138,7 +148,7 @@ get_latest_version() {
             exit 1
         fi
     else
-        filename=$(curl -s "https://api.github.com/repos/${repo}/releases/latest" | jq -r ".assets[] | select(.name == \"Xray-linux-${XRAY_ARCH}.zip\") | .name")
+        filename=$(echo "$release_json" | jq -r ".assets[] | select(.name == \"Xray-linux-${XRAY_ARCH}.zip\") | .name")
         if [ -z "$filename" ]; then
             print_error "无法找到 $name 的 ${XRAY_ARCH} .zip 文件"
             exit 1
@@ -166,7 +176,7 @@ download_file() {
             exit 1
         fi
     elif command -v curl &> /dev/null; then
-        if ! curl -L -o "$output" "$url"; then
+        if ! curl -L --fail --show-error -o "$output" "$url"; then
             print_error "下载 $name 失败"
             print_error "URL: $url"
             exit 1

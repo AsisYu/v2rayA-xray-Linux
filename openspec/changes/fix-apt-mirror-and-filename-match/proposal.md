@@ -140,4 +140,4 @@ git checkout main -- setup.sh
 
 - [x] 约束分析完成
 - [x] 提案生成完成
-- [ ] 实施 setup.sh 修改
+- [x] 实施 setup.sh 修改
