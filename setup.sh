@@ -490,13 +490,13 @@ if [[ "\$V2RAYA_FILE" == *.rpm ]]; then
         print_error "RPM 安装失败"
         exit 1
     fi
+    print_info "v2rayA 安装完成"
 else
     # 使用通用二进制
     print_info "将 v2raya 二进制复制到 /usr/local/bin/..."
     install -m 755 "\$V2RAYA_FILE" /usr/local/bin/v2raya
+    print_info "v2rayA 安装完成"
 fi
-
-print_info "v2rayA 安装完成"
 
 # 步骤 2: 安装 Xray-core
 print_info "步骤 2: 安装 Xray-core"
@@ -513,10 +513,16 @@ else
     print_warning "未找到 Xray 二进制文件，跳过 Xray 安装"
 fi
 
-# 步骤 3: 创建 systemd 服务
+# 步骤 3: 配置 systemd 服务
 print_info "步骤 3: 配置 v2rayA 服务"
 
-cat > /etc/systemd/system/v2raya.service << 'SERVICEEOF'
+if [[ "\$V2RAYA_FILE" == *.rpm ]]; then
+    # RPM 包自带 systemd 服务，只需启用
+    print_info "RPM 包已包含 systemd 服务，启用服务..."
+else
+    # 通用二进制需要手动创建 systemd 服务
+    print_info "创建 systemd 服务文件..."
+    cat > /etc/systemd/system/v2raya.service << 'SERVICEEOF'
 [Unit]
 Description=v2rayA Service
 After=network.target
@@ -530,6 +536,7 @@ RestartSec=5s
 [Install]
 WantedBy=multi-user.target
 SERVICEEOF
+fi
 
 systemctl daemon-reload
 systemctl enable v2raya
