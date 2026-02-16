@@ -229,6 +229,9 @@ get_latest_version() {
 
     print_info "$name 最新版本: $version"
 
+    # 去掉版本号的 v 前缀（用于文件名匹配）
+    local version_num="${version#v}"
+
     # 获取对应架构的文件名
     if [ "$OS_TYPE" = "debian" ]; then
         # Debian/Ubuntu - 使用 .deb 包
@@ -255,14 +258,16 @@ get_latest_version() {
     else
         # CentOS/RHEL - 优先使用 RPM 包，回退到通用二进制
         if [ "$name" = "v2rayA" ]; then
-            # 优先使用 RPM 包
-            filename=$(echo "$release_json" | jq -r ".assets[] | select(.name == \"installer_redhat_${V2RAYA_RPM_ARCH}_${version}.rpm\") | .name")
+            # 优先使用 RPM 包（使用 contains 匹配，因为版本号格式可能不同）
+            filename=$(echo "$release_json" | jq -r ".assets[] | select(.name | endswith(\".rpm\") and contains(\"installer_redhat_${V2RAYA_RPM_ARCH}\") and (contains(\"sha256\") | not)) | .name")
             # 如果 RPM 不存在，回退到通用二进制
             if [ -z "$filename" ]; then
                 print_warning "未找到 $name 的 RPM 包，将使用通用二进制"
-                filename=$(echo "$release_json" | jq -r ".assets[] | select(.name == \"v2raya_linux_${ARCH}_${version}\") | .name")
+                # 通用二进制使用 x64 而不是 amd64
+                local binary_arch="${V2RAYA_RPM_ARCH}"
+                filename=$(echo "$release_json" | jq -r ".assets[] | select(.name == \"v2raya_linux_${binary_arch}_${version_num}\") | .name")
                 if [ -z "$filename" ]; then
-                    print_error "无法找到 $name 的 ${ARCH} 二进制文件"
+                    print_error "无法找到 $name 的 ${binary_arch} 二进制文件"
                     exit 1
                 fi
             fi
