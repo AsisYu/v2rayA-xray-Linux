@@ -110,33 +110,7 @@ sudo systemctl disable v2raya    # 取消开机自启
 | 文件 | 说明 |
 |------|------|
 | setup.sh | 主安装脚本，支持动态版本加载 |
-| openspec/ | OpenSpec 约束集合和提案文档 |
 | CLAUDE.md | Claude Code 项目指导文档 |
-
-## AI 辅助开发
-
-本项目使用 Claude AI (Claude Code) 进行代码开发和文档编写辅助。
-
-### OpenSpec 规范
-
-项目使用 OpenSpec 方法论进行开发规划，包括：
-
-- 约束集合定义
-- 实施提案文档
-- 动态版本加载功能开发
-- 一条命令安装功能实现
-- GitHub 加速访问文档编写
-
-### 开发记录
-
-完整的开发记录和决策过程保存在 `openspec/` 目录中，包括：
-
-- `openspec/constraints.md` - 项目级约束集合
-- `openspec/changes/` - 各变更的详细文档
-
-### Claude Code 配置
-
-项目包含 `CLAUDE.md` 文件，为 Claude Code 提供项目特定的指导信息。
 
 ## 开源仓库
 
