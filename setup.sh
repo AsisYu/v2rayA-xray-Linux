@@ -100,11 +100,12 @@ check_dependencies() {
     print_info "依赖检查通过"
 }
 
-# 获取最新版本号
+# 获取最新版本号和文件名
 get_latest_version() {
     local repo=$1
     local name=$2
     local version
+    local filename
 
     print_info "正在获取 $name 最新版本..."
 
@@ -117,7 +118,25 @@ get_latest_version() {
     fi
 
     print_info "$name 最新版本: $version"
+
+    # 获取对应架构的文件名
+    if [ "$name" = "v2rayA" ]; then
+        filename=$(curl -s "https://api.github.com/repos/${repo}/releases/latest" | jq -r ".assets[] | select(.name | contains(\"${V2RAYA_ARCH}\") and contains(\".deb\")) | .name")
+        if [ -z "$filename" ]; then
+            print_error "无法找到 $name 的 ${V2RAYA_ARCH} .deb 文件"
+            exit 1
+        fi
+    else
+        filename=$(curl -s "https://api.github.com/repos/${repo}/releases/latest" | jq -r ".assets[] | select(.name == \"Xray-linux-${XRAY_ARCH}.zip\") | .name")
+        if [ -z "$filename" ]; then
+            print_error "无法找到 $name 的 ${XRAY_ARCH} .zip 文件"
+            exit 1
+        fi
+    fi
+
+    # 输出版本号和文件名
     echo "$version"
+    echo "$filename"
 }
 
 # 下载文件
@@ -161,15 +180,17 @@ trap cleanup EXIT
 # 进入临时目录
 cd "$TEMP_DIR"
 
-# 获取最新版本
-V2RAYA_VERSION=$(get_latest_version "$V2RAYA_REPO" "v2rayA")
-XRAY_VERSION=$(get_latest_version "$XRAY_REPO" "Xray-core")
+# 获取最新版本和文件名
+V2RAYA_INFO=$(get_latest_version "$V2RAYA_REPO" "v2rayA")
+V2RAYA_VERSION=$(echo "$V2RAYA_INFO" | head -1)
+V2RAYA_DEB=$(echo "$V2RAYA_INFO" | tail -1)
 
-# 构造文件名和下载 URL
-V2RAYA_DEB="installer_debian_${V2RAYA_ARCH}_${V2RAYA_VERSION}.deb"
+XRAY_INFO=$(get_latest_version "$XRAY_REPO" "Xray-core")
+XRAY_VERSION=$(echo "$XRAY_INFO" | head -1)
+XRAY_ZIP=$(echo "$XRAY_INFO" | tail -1)
+
+# 构造下载 URL
 V2RAYA_URL="https://github.com/${V2RAYA_REPO}/releases/download/${V2RAYA_VERSION}/${V2RAYA_DEB}"
-
-XRAY_ZIP="Xray-linux-${XRAY_ARCH}.zip"
 XRAY_URL="https://github.com/${XRAY_REPO}/releases/download/${XRAY_VERSION}/${XRAY_ZIP}"
 
 print_info ""
