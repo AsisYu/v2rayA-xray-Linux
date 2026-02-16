@@ -45,6 +45,14 @@ esac
 
 # =================================================
 
+# GitHub API 代理配置（国内服务器可设置）
+# 使用方式：export GITHUB_API_PROXY=https://v6.gh-proxy.org/https://api.github.com
+GITHUB_API_PROXY="${GITHUB_API_PROXY:-}"
+
+# GitHub 文件下载代理（国内服务器可设置）
+# 使用方式：export GITHUB_DOWNLOAD_PROXY=https://v6.gh-proxy.org
+GITHUB_DOWNLOAD_PROXY="${GITHUB_DOWNLOAD_PROXY:-}"
+
 GREEN='\033[0;32m'
 RED='\033[0;31m'
 YELLOW='\033[1;33m'
@@ -175,15 +183,39 @@ get_latest_version() {
     local version
     local filename
     local release_json
+    local api_url
+    local max_retries=3
+    local retry=0
 
     print_info "正在获取 $name 最新版本..."
 
-    # 一次性获取所有 release 信息，避免多次 API 调用导致版本不一致
-    release_json=$(curl -s "https://api.github.com/repos/${repo}/releases/latest")
+    # 构造 API URL（支持代理）
+    if [ -n "$GITHUB_API_PROXY" ]; then
+        api_url="${GITHUB_API_PROXY}/repos/${repo}/releases/latest"
+        print_info "使用 GitHub API 代理: $GITHUB_API_PROXY"
+    else
+        api_url="https://api.github.com/repos/${repo}/releases/latest"
+    fi
+
+    # 带重试的 API 调用
+    while [ $retry -lt $max_retries ]; do
+        release_json=$(curl -s --max-time 30 "$api_url" 2>/dev/null)
+
+        if [ -n "$release_json" ] && [ "$(echo "$release_json" | jq -r '.tag_name' 2>/dev/null)" != "null" ]; then
+            break
+        fi
+
+        retry=$((retry + 1))
+        if [ $retry -lt $max_retries ]; then
+            print_warning "获取 $name 版本失败，正在重试 ($retry/$max_retries)..."
+            sleep 2
+        fi
+    done
 
     if [ -z "$release_json" ]; then
         print_error "无法获取 $name 的 release 信息"
-        print_error "请检查网络连接或稍后重试"
+        print_error "请检查网络连接或设置 GitHub API 代理："
+        print_error "  export GITHUB_API_PROXY=https://v6.gh-proxy.org/https://api.github.com"
         exit 1
     fi
 
@@ -556,9 +588,15 @@ XRAY_INFO=$(get_latest_version "$XRAY_REPO" "Xray-core")
 XRAY_VERSION=$(echo "$XRAY_INFO" | head -1)
 XRAY_ZIP=$(echo "$XRAY_INFO" | tail -1)
 
-# 构造下载 URL
-V2RAYA_URL="https://github.com/${V2RAYA_REPO}/releases/download/${V2RAYA_VERSION}/${V2RAYA_FILE}"
-XRAY_URL="https://github.com/${XRAY_REPO}/releases/download/${XRAY_VERSION}/${XRAY_ZIP}"
+# 构造下载 URL（支持代理）
+if [ -n "$GITHUB_DOWNLOAD_PROXY" ]; then
+    V2RAYA_URL="${GITHUB_DOWNLOAD_PROXY}/https://github.com/${V2RAYA_REPO}/releases/download/${V2RAYA_VERSION}/${V2RAYA_FILE}"
+    XRAY_URL="${GITHUB_DOWNLOAD_PROXY}/https://github.com/${XRAY_REPO}/releases/download/${XRAY_VERSION}/${XRAY_ZIP}"
+    print_info "使用 GitHub 下载代理: $GITHUB_DOWNLOAD_PROXY"
+else
+    V2RAYA_URL="https://github.com/${V2RAYA_REPO}/releases/download/${V2RAYA_VERSION}/${V2RAYA_FILE}"
+    XRAY_URL="https://github.com/${XRAY_REPO}/releases/download/${XRAY_VERSION}/${XRAY_ZIP}"
+fi
 
 print_info ""
 print_info "========================================"
