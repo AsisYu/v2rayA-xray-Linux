@@ -289,10 +289,10 @@ fi
 
 print_info "更新为阿里云镜像源..."
 tee /etc/apt/sources.list <<-'EOF'
-deb http://mirrors.cloud.aliyuncs.com/ubuntu/ jammy main restricted universe multiverse
-deb http://mirrors.cloud.aliyuncs.com/ubuntu/ jammy-updates main restricted universe multiverse
-deb http://mirrors.cloud.aliyuncs.com/ubuntu/ jammy-backports main restricted universe multiverse
-deb http://mirrors.cloud.aliyuncs.com/ubuntu/ jammy-security main restricted universe multiverse
+http://mirrors.cloud.aliyuncs.com/ubuntu/ jammy main restricted universe multiverse
+http://mirrors.cloud.aliyuncs.com/ubuntu/ jammy-updates main restricted universe multiverse
+http://mirrors.cloud.aliyuncs.com/ubuntu/ jammy-backports main restricted universe multiverse
+http://mirrors.cloud.aliyuncs.com/ubuntu/ jammy-security main restricted universe multiverse
 EOF
 
 print_info "更新 APT 缓存..."
@@ -304,7 +304,13 @@ print_info "APT 源配置完成"
 print_info "步骤 2: 安装 v2rayA 和 Xray"
 
 # 获取当前目录下的 .deb 文件（应该只有一个 v2rayA .deb）
-V2RAYA_DEB=$(ls -1 *.deb 2>/dev/null | grep -E "^installer_debian_.*\.deb$" | head -n 1)
+V2RAYA_DEB=$(ls -1 *.deb 2>/dev/null | grep -E "installer_debian" | head -n 1)
+if [ -z "$V2RAYA_DEB" ]; then
+    print_error "未找到 v2rayA 安装包 (installer_debian_*.deb)"
+    print_error "目录中的 .deb 文件:"
+    ls -1 *.deb
+    exit 1
+fi
 
 if [ -z "$V2RAYA_DEB" ]; then
     print_error "未找到 v2rayA 安装包 (installer_debian_*.deb)"
