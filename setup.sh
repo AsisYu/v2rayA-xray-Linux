@@ -77,7 +77,11 @@ check_dependencies() {
 
     # 更新 apt 缓存
     print_info "更新 APT 缓存..."
-    apt update -qq
+    if ! apt update -qq; then
+        print_error "APT 更新失败，请检查网络连接或配置正确的软件源"
+        print_error "如需配置国内镜像源，请手动编辑 /etc/apt/sources.list"
+        exit 1
+    fi
 
     # 检查并安装 jq
     if ! command -v jq &> /dev/null; then
@@ -121,9 +125,16 @@ get_latest_version() {
 
     # 获取对应架构的文件名
     if [ "$name" = "v2rayA" ]; then
-        filename=$(curl -s "https://api.github.com/repos/${repo}/releases/latest" | jq -r ".assets[] | select(.name | contains(\"${V2RAYA_ARCH}\") and contains(\".deb\")) | .name")
+        # 排除 sha256.txt 校验文件，只下载实际的 .deb 包
+        filename=$(curl -s "https://api.github.com/repos/${repo}/releases/latest" | jq -r ".assets[] | select(.name | endswith(\".deb\") and (contains(\"${V2RAYA_ARCH}\")) and (contains(\"sha256\") | not)) | .name")
         if [ -z "$filename" ]; then
             print_error "无法找到 $name 的 ${V2RAYA_ARCH} .deb 文件"
+            exit 1
+        fi
+        # 检查是否匹配多个文件（多个匹配会被 jq 用空格分隔）
+        if [[ "$filename" == *" "* ]]; then
+            print_error "找到多个匹配的 .deb 文件: $filename"
+            print_error "请手动选择正确的文件"
             exit 1
         fi
     else
@@ -147,9 +158,21 @@ download_file() {
 
     print_info "正在下载 $name..."
 
-    if ! wget -q --show-progress -O "$output" "$url"; then
-        print_error "下载 $name 失败"
-        print_error "URL: $url"
+    # 优先使用 wget，如果不存在则使用 curl
+    if command -v wget &> /dev/null; then
+        if ! wget --progress=bar:force -O "$output" "$url"; then
+            print_error "下载 $name 失败"
+            print_error "URL: $url"
+            exit 1
+        fi
+    elif command -v curl &> /dev/null; then
+        if ! curl -L -o "$output" "$url"; then
+            print_error "下载 $name 失败"
+            print_error "URL: $url"
+            exit 1
+        fi
+    else
+        print_error "找不到 wget 或 curl 下载工具"
         exit 1
     fi
 
@@ -251,7 +274,7 @@ cat > install_v2raya_simple.sh <<'INSTALLEOF'
 #!/bin/bash
 
 # Ubuntu 22.04 v2rayA + Xray 简化安装脚本（动态版本）
-# 功能：备份源配置、更新为阿里云镜像、安装 v2rayA 和 Xray
+# 功能：安装 v2rayA 和 Xray
 
 set -e
 
@@ -279,26 +302,17 @@ if [ "$EUID" -ne 0 ]; then
     exit 1
 fi
 
-# 步骤 1: 备份现有源配置并更新为阿里云镜像
-print_info "步骤 1: 备份并更新 APT 源配置"
-
-if [ -f /etc/apt/sources.list ]; then
-    cp /etc/apt/sources.list /etc/apt/sources.list.bak
-    print_info "已备份原有源配置到 /etc/apt/sources.list.bak"
-fi
-
-print_info "更新为阿里云镜像源..."
-tee /etc/apt/sources.list <<-'EOF'
-http://mirrors.cloud.aliyuncs.com/ubuntu/ jammy main restricted universe multiverse
-http://mirrors.cloud.aliyuncs.com/ubuntu/ jammy-updates main restricted universe multiverse
-http://mirrors.cloud.aliyuncs.com/ubuntu/ jammy-backports main restricted universe multiverse
-http://mirrors.cloud.aliyuncs.com/ubuntu/ jammy-security main restricted universe multiverse
-EOF
+# 步骤 1: 更新 APT 缓存
+print_info "步骤 1: 更新 APT 缓存"
 
 print_info "更新 APT 缓存..."
-apt update
+if ! apt update; then
+    print_error "APT 更新失败，请检查网络连接或配置正确的软件源"
+    print_error "如需配置国内镜像源，请手动编辑 /etc/apt/sources.list"
+    exit 1
+fi
 
-print_info "APT 源配置完成"
+print_info "APT 缓存更新成功"
 
 # 步骤 2: 安装 v2rayA 和 Xray
 print_info "步骤 2: 安装 v2rayA 和 Xray"
@@ -309,12 +323,6 @@ if [ -z "$V2RAYA_DEB" ]; then
     print_error "未找到 v2rayA 安装包 (installer_debian_*.deb)"
     print_error "目录中的 .deb 文件:"
     ls -1 *.deb
-    exit 1
-fi
-
-if [ -z "$V2RAYA_DEB" ]; then
-    print_error "未找到 v2rayA 安装包 (installer_debian_*.deb)"
-    ls -la
     exit 1
 fi
 
