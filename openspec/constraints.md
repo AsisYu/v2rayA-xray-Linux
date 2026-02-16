@@ -234,6 +234,28 @@ curl -fsSL <public-url> | sudo bash
 ### 问题原因
 print_info 输出被混入 URL 变量中，导致 URL 格式错误。通过重定向日志输出到 stderr 解决。
 
+---
+
+## 变更 8: 修复文件名格式
+
+### 用户需求
+> bug：ubuntu无法root@localhost:~# curl ... | sudo bash
+
+### 实施状态
+✅ **已实施** - setup.sh 已从 API 获取实际文件名
+
+### 变更详情
+详细约束和实施计划请参考: [openspec/changes/fix-filename-format/constraints.md](./changes/fix-filename-format/constraints.md)
+
+### 关键变更
+| 函数 | 变更 |
+|------|------|
+| get_latest_version() | 从 API 获取实际文件名，返回版本号和文件名 |
+
+### 文件名格式变化
+- v2rayA 文件名格式：从 `installer_debian_x64_v2.2.7.5.deb` 改为 `installer_debian_x64_2.2.7.5.deb`（使用 API 返回的实际文件名）
+- API 调用增加：每个项目增加 1 次调用
+
 ### 变更详情
 详细约束和实施计划请参考: [openspec/changes/readme-claude-ai/constraints.md](./changes/readme-claude-ai/constraints.md)
 
