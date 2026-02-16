@@ -1,6 +1,7 @@
 #!/bin/bash
 
 # v2rayA + Xray 一键安装引导脚本
+# 支持 Debian/Ubuntu 和 CentOS/RHEL 系列
 # 用户通过 curl 执行此脚本，会自动从 GitHub 获取最新版本并安装
 
 set -e
@@ -27,6 +28,13 @@ case "$ARCH" in
     *) V2RAYA_ARCH="x64" ;;
 esac
 
+# v2rayA RPM 架构映射（用于 CentOS/RHEL）
+case "$ARCH" in
+    amd64|x86_64) V2RAYA_RPM_ARCH="x64" ;;
+    arm64|aarch64) V2RAYA_RPM_ARCH="arm64" ;;
+    *) V2RAYA_RPM_ARCH="x64" ;;
+esac
+
 # Xray-core Linux 架构映射
 case "$ARCH" in
     amd64|x86_64) XRAY_ARCH="64" ;;
@@ -34,6 +42,7 @@ case "$ARCH" in
     armv7|armhf) XRAY_ARCH="arm32-v7a" ;;
     *) XRAY_ARCH="64" ;;
 esac
+
 # =================================================
 
 GREEN='\033[0;32m'
@@ -65,6 +74,44 @@ detect_arch() {
     print_info "检测到系统架构: $ARCH"
 }
 
+# 检测操作系统类型
+detect_os() {
+    if [ -f /etc/os-release ]; then
+        . /etc/os-release
+    fi
+
+    if [ -z "$ID" ]; then
+        print_error "无法检测操作系统类型"
+        exit 1
+    fi
+
+    OS_TYPE=""
+    PKG_MGR=""
+
+    case "$ID" in
+        ubuntu|debian)
+            OS_TYPE="debian"
+            PKG_MGR="apt"
+            ;;
+        rhel|centos|rocky|almalinux)
+            OS_TYPE="rpm"
+            # CentOS 8/RHEL 8+ 使用 dnf
+            if [ "$VERSION_ID" -ge "8" ] || [ "$ID" = "fedora" ] || [ "$ID" = "rocky" ] || [ "$ID" = "almalinux" ]; then
+                PKG_MGR="dnf"
+            else
+                PKG_MGR="yum"
+            fi
+            ;;
+        *)
+            print_error "不支持的操作系统: $ID"
+            print_error "支持的系统: Debian/Ubuntu, CentOS/RHEL, Rocky Linux, AlmaLinux, Fedora"
+            exit 1
+            ;;
+    esac
+
+    print_info "检测到操作系统: $OS_TYPE ($ID $VERSION_ID)"
+}
+
 # 检查依赖工具
 check_dependencies() {
     print_info "检查并安装依赖工具..."
@@ -75,30 +122,47 @@ check_dependencies() {
         exit 1
     fi
 
-    # 更新 apt 缓存
-    print_info "更新 APT 缓存..."
-    if ! apt update -qq; then
-        print_error "APT 更新失败，请检查网络连接或配置正确的软件源"
-        print_error "如需配置国内镜像源，请手动编辑 /etc/apt/sources.list"
-        exit 1
-    fi
+    if [ "$OS_TYPE" = "debian" ]; then
+        # Debian/Ubuntu 系统 - 使用 apt
+        print_info "更新 APT 缓存..."
+        if ! apt update -qq; then
+            print_error "APT 更新失败，请检查网络连接或配置正确的软件源"
+            exit 1
+        fi
 
-    # 检查并安装 jq
-    if ! command -v jq &> /dev/null; then
-        print_info "安装 jq..."
-        apt install -y jq
-    fi
+        # 检查并安装 jq
+        if ! command -v jq &> /dev/null; then
+            print_info "安装 jq..."
+            apt install -y jq
+        fi
 
-    # 检查并安装 unzip
-    if ! command -v unzip &> /dev/null; then
-        print_info "安装 unzip..."
-        apt install -y unzip
-    fi
+        # 检查并安装 unzip
+        if ! command -v unzip &> /dev/null; then
+            print_info "安装 unzip..."
+            apt install -y unzip
+        fi
 
-    # 检查 curl 或 wget
-    if ! command -v curl &> /dev/null && ! command -v wget &> /dev/null; then
-        print_info "安装 curl..."
-        apt install -y curl
+        # 检查 curl 或 wget
+        if ! command -v curl &> /dev/null && ! command -v wget &> /dev/null; then
+            print_info "安装 curl..."
+            apt install -y curl
+        fi
+    else
+        # CentOS/RHEL 系统 - 使用 yum/dnf
+        if ! command -v curl &> /dev/null; then
+            print_info "安装 curl..."
+            $PKG_MGR install -y curl
+        fi
+
+        if ! command -v jq &> /dev/null; then
+            print_info "安装 jq..."
+            $PKG_MGR install -y jq
+        fi
+
+        if ! command -v unzip &> /dev/null; then
+            print_info "安装 unzip..."
+            $PKG_MGR install -y unzip
+        fi
     fi
 
     print_info "依赖检查通过"
@@ -134,24 +198,48 @@ get_latest_version() {
     print_info "$name 最新版本: $version"
 
     # 获取对应架构的文件名
-    if [ "$name" = "v2rayA" ]; then
-        # 排除 sha256.txt 校验文件，只下载实际的 .deb 包
-        filename=$(echo "$release_json" | jq -r ".assets[] | select(.name | endswith(\".deb\") and (contains(\"${V2RAYA_ARCH}\")) and (contains(\"sha256\") | not)) | .name")
-        if [ -z "$filename" ]; then
-            print_error "无法找到 $name 的 ${V2RAYA_ARCH} .deb 文件"
-            exit 1
-        fi
-        # 检查是否匹配多个文件（多个匹配会被 jq 用空格分隔）
-        if [[ "$filename" == *" "* ]]; then
-            print_error "找到多个匹配的 .deb 文件: $filename"
-            print_error "请手动选择正确的文件"
-            exit 1
+    if [ "$OS_TYPE" = "debian" ]; then
+        # Debian/Ubuntu - 使用 .deb 包
+        if [ "$name" = "v2rayA" ]; then
+            # 排除 sha256.txt 校验文件，只下载实际的 .deb 包
+            filename=$(echo "$release_json" | jq -r ".assets[] | select(.name | endswith(\".deb\") and (contains(\"${V2RAYA_ARCH}\")) and (contains(\"sha256\") | not)) | .name")
+            if [ -z "$filename" ]; then
+                print_error "无法找到 $name 的 ${V2RAYA_ARCH} .deb 文件"
+                exit 1
+            fi
+            # 检查是否匹配多个文件（多个匹配会被 jq 用空格分隔）
+            if [[ "$filename" == *" "* ]]; then
+                print_error "找到多个匹配的 .deb 文件: $filename"
+                print_error "请手动选择正确的文件"
+                exit 1
+            fi
+        else
+            filename=$(echo "$release_json" | jq -r ".assets[] | select(.name == \"Xray-linux-${XRAY_ARCH}.zip\") | .name")
+            if [ -z "$filename" ]; then
+                print_error "无法找到 $name 的 ${XRAY_ARCH} .zip 文件"
+                exit 1
+            fi
         fi
     else
-        filename=$(echo "$release_json" | jq -r ".assets[] | select(.name == \"Xray-linux-${XRAY_ARCH}.zip\") | .name")
-        if [ -z "$filename" ]; then
-            print_error "无法找到 $name 的 ${XRAY_ARCH} .zip 文件"
-            exit 1
+        # CentOS/RHEL - 优先使用 RPM 包，回退到通用二进制
+        if [ "$name" = "v2rayA" ]; then
+            # 优先使用 RPM 包
+            filename=$(echo "$release_json" | jq -r ".assets[] | select(.name == \"installer_redhat_${V2RAYA_RPM_ARCH}_${version}.rpm\") | .name")
+            # 如果 RPM 不存在，回退到通用二进制
+            if [ -z "$filename" ]; then
+                print_warning "未找到 $name 的 RPM 包，将使用通用二进制"
+                filename=$(echo "$release_json" | jq -r ".assets[] | select(.name == \"v2raya_linux_${ARCH}_${version}\") | .name")
+                if [ -z "$filename" ]; then
+                    print_error "无法找到 $name 的 ${ARCH} 二进制文件"
+                    exit 1
+                fi
+            fi
+        else
+            filename=$(echo "$release_json" | jq -r ".assets[] | select(.name == \"Xray-linux-${XRAY_ARCH}.zip\") | .name")
+            if [ -z "$filename" ]; then
+                print_error "无法找到 $name 的 ${XRAY_ARCH} .zip 文件"
+                exit 1
+            fi
         fi
     fi
 
@@ -195,8 +283,254 @@ download_file() {
     print_info "$name 下载完成 (大小: $size)"
 }
 
+# 生成安装脚本
+generate_install_script() {
+    local v2raya_file=$1
+    local v2raya_version=$2
+    local xray_version=$3
+
+    print_info "生成安装脚本..."
+
+    if [ "$OS_TYPE" = "debian" ]; then
+        # Debian/Ubuntu 安装脚本
+        cat > install_v2raya_simple.sh << DEBEOF
+#!/bin/bash
+
+# v2rayA + Xray 简化安装脚本（动态版本）
+# 功能：安装 v2rayA 和 Xray
+
+set -e
+
+# 颜色输出
+RED='\033[0;31m'
+GREEN='\033[0;32m'
+YELLOW='\033[1;33m'
+NC='\033[0m'
+
+print_info() {
+    echo -e "\${GREEN}[INFO]\${NC} \$1"
+}
+
+print_error() {
+    echo -e "\${RED}[ERROR]\${NC} \$1"
+}
+
+print_warning() {
+    echo -e "\${YELLOW}[WARNING]\${NC} \$1"
+}
+
+# 检查是否为 root 用户
+if [ "\$EUID" -ne 0 ]; then
+    print_error "请使用 sudo 运行此脚本"
+    exit 1
+fi
+
+# 步骤 1: 更新 APT 缓存
+print_info "步骤 1: 更新 APT 缓存"
+
+print_info "更新 APT 缓存..."
+if ! apt update; then
+    print_error "APT 更新失败，请检查网络连接或配置正确的软件源"
+    exit 1
+fi
+
+print_info "APT 缓存更新成功"
+
+# 步骤 2: 安装 v2rayA 和 Xray
+print_info "步骤 2: 安装 v2rayA 和 Xray"
+
+# 获取当前目录下的 .deb 文件（应该只有一个 v2rayA .deb）
+V2RAYA_DEB=\$(ls -1 *.deb 2>/dev/null | grep -E "installer_debian" | head -n 1)
+if [ -z "\$V2RAYA_DEB" ]; then
+    print_error "未找到 v2rayA 安装包 (installer_debian_*.deb)"
+    ls -la
+    exit 1
+fi
+
+print_info "安装 \$V2RAYA_DEB..."
+dpkg -i "\$V2RAYA_DEB" || true
+
+# 安装 Xray 二进制文件
+if [ -d "xray" ]; then
+    print_info "安装 Xray-core 二进制文件..."
+    install -m 755 xray/xray /usr/local/bin/xray 2>/dev/null || \\
+        install -m 755 xray/Xray /usr/local/bin/xray 2>/dev/null || {
+        print_error "无法安装 Xray 二进制文件"
+        exit 1
+    }
+    print_info "Xray-core 安装完成"
+else
+    print_warning "未找到 Xray 二进制文件，跳过 Xray 安装"
+fi
+
+# 修复依赖关系
+print_info "修复依赖关系..."
+apt --fix-broken install -y
+
+print_info "软件包安装完成"
+
+# 步骤 3: 重载并重启服务
+print_info "步骤 3: 重载并重启 v2rayA 服务"
+
+print_info "重载 systemd 配置..."
+systemctl daemon-reload
+
+print_info "重启 v2rayA 服务..."
+systemctl restart v2raya || print_warning "v2raya 服务重启可能失败"
+
+print_info "设置 v2rayA 开机自启..."
+systemctl enable v2raya
+
+# 检查服务状态
+print_info "检查 v2rayA 服务状态..."
+if systemctl is-active --quiet v2raya; then
+    print_info "v2rayA 服务运行正常"
+else
+    print_warning "v2rayA 服务未运行，请检查配置"
+    systemctl status v2raya --no-pager || true
+fi
+
+print_info ""
+print_info "========================================"
+print_info "安装完成！"
+print_info "v2rayA Web 界面: http://localhost:2017"
+print_info "启动服务: sudo systemctl start v2raya"
+print_info "停止服务: sudo systemctl stop v2raya"
+print_info "查看状态: sudo systemctl status v2raya"
+print_info "========================================"
+DEBEOF
+
+        chmod +x install_v2raya_simple.sh
+    else
+        # RPM 系统安装脚本
+        cat > install_v2raya_simple.sh << RPMEOF
+#!/bin/bash
+
+# v2rayA + Xray RPM 系统安装脚本（动态版本）
+# 功能：安装 v2rayA 和 Xray
+
+set -e
+
+# 颜色输出
+RED='\033[0;31m'
+GREEN='\033[0;32m'
+YELLOW='\033[1;33m'
+NC='\033[0m'
+
+print_info() {
+    echo -e "\${GREEN}[INFO]\${NC} \$1"
+}
+
+print_error() {
+    echo -e "\${RED}[ERROR]\${NC} \$1"
+}
+
+print_warning() {
+    echo -e "\${YELLOW}[WARNING]\${NC} \$1"
+}
+
+# 检查是否为 root 用户
+if [ "\$EUID" -ne 0 ]; then
+    print_error "请使用 sudo 运行此脚本"
+    exit 1
+fi
+
+# 检测包管理器
+if command -v dnf &> /dev/null; then
+    PKG_MGR="dnf"
+else
+    PKG_MGR="yum"
+fi
+
+# 步骤 1: 安装 v2rayA
+print_info "步骤 1: 安装 v2rayA"
+
+V2RAYA_FILE="$v2raya_file"
+if [[ "\$V2RAYA_FILE" == *.rpm ]]; then
+    # 使用 RPM 包
+    print_info "使用 RPM 包安装 v2rayA..."
+    if ! \$PKG_MGR install -y "\$V2RAYA_FILE"; then
+        print_error "RPM 安装失败"
+        exit 1
+    fi
+else
+    # 使用通用二进制
+    print_info "将 v2raya 二进制复制到 /usr/local/bin/..."
+    install -m 755 "\$V2RAYA_FILE" /usr/local/bin/v2raya
+fi
+
+print_info "v2rayA 安装完成"
+
+# 步骤 2: 安装 Xray-core
+print_info "步骤 2: 安装 Xray-core"
+
+if [ -d "xray" ]; then
+    print_info "安装 Xray-core 二进制文件..."
+    install -m 755 xray/xray /usr/local/bin/xray 2>/dev/null || \\
+        install -m 755 xray/Xray /usr/local/bin/xray 2>/dev/null || {
+        print_error "无法安装 Xray 二进制文件"
+        exit 1
+    }
+    print_info "Xray-core 安装完成"
+else
+    print_warning "未找到 Xray 二进制文件，跳过 Xray 安装"
+fi
+
+# 步骤 3: 创建 systemd 服务
+print_info "步骤 3: 配置 v2rayA 服务"
+
+cat > /etc/systemd/system/v2raya.service << 'SERVICEEOF'
+[Unit]
+Description=v2rayA Service
+After=network.target
+
+[Service]
+Type=simple
+ExecStart=/usr/local/bin/v2raya
+Restart=on-failure
+RestartSec=5s
+
+[Install]
+WantedBy=multi-user.target
+SERVICEEOF
+
+systemctl daemon-reload
+systemctl enable v2raya
+
+print_info "systemd 服务配置完成"
+
+# 步骤 4: 启动服务
+print_info "步骤 4: 启动 v2rayA 服务"
+
+systemctl start v2raya || print_warning "v2raya 服务启动可能失败"
+
+# 检查服务状态
+sleep 2
+print_info "检查 v2rayA 服务状态..."
+if systemctl is-active --quiet v2raya; then
+    print_info "v2rayA 服务运行正常"
+else
+    print_warning "v2rayA 服务未运行，请检查配置"
+    systemctl status v2raya --no-pager || true
+fi
+
+print_info ""
+print_info "========================================"
+print_info "安装完成！"
+print_info "v2rayA Web 界面: http://localhost:2017"
+print_info "启动服务: systemctl start v2raya"
+print_info "停止服务: systemctl stop v2raya"
+print_info "查看状态: systemctl status v2raya"
+print_info "========================================"
+RPMEOF
+
+        chmod +x install_v2raya_simple.sh
+    fi
+}
+
 # 执行前置检查
 detect_arch
+detect_os
 check_dependencies
 
 # 创建临时目录
@@ -216,27 +550,29 @@ cd "$TEMP_DIR"
 # 获取最新版本和文件名
 V2RAYA_INFO=$(get_latest_version "$V2RAYA_REPO" "v2rayA")
 V2RAYA_VERSION=$(echo "$V2RAYA_INFO" | head -1)
-V2RAYA_DEB=$(echo "$V2RAYA_INFO" | tail -1)
+V2RAYA_FILE=$(echo "$V2RAYA_INFO" | tail -1)
 
 XRAY_INFO=$(get_latest_version "$XRAY_REPO" "Xray-core")
 XRAY_VERSION=$(echo "$XRAY_INFO" | head -1)
 XRAY_ZIP=$(echo "$XRAY_INFO" | tail -1)
 
 # 构造下载 URL
-V2RAYA_URL="https://github.com/${V2RAYA_REPO}/releases/download/${V2RAYA_VERSION}/${V2RAYA_DEB}"
+V2RAYA_URL="https://github.com/${V2RAYA_REPO}/releases/download/${V2RAYA_VERSION}/${V2RAYA_FILE}"
 XRAY_URL="https://github.com/${XRAY_REPO}/releases/download/${XRAY_VERSION}/${XRAY_ZIP}"
 
 print_info ""
 print_info "========================================"
 print_info "版本信息"
 print_info "========================================"
-print_info "v2rayA:  ${V2RAYA_VERSION}"
-print_info "Xray-core: ${XRAY_VERSION}"
+print_info "操作系统: $OS_TYPE ($ID $VERSION_ID)"
+print_info "架构:      $ARCH"
+print_info "v2rayA:     ${V2RAYA_VERSION}"
+print_info "Xray-core:  ${XRAY_VERSION}"
 print_info "========================================"
 print_info ""
 
 # 下载 v2rayA 包
-download_file "$V2RAYA_URL" "$V2RAYA_DEB" "v2rayA"
+download_file "$V2RAYA_URL" "$V2RAYA_FILE" "v2rayA"
 
 # 下载 Xray 包
 download_file "$XRAY_URL" "$XRAY_ZIP" "Xray-core"
@@ -263,133 +599,8 @@ else
     exit 1
 fi
 
-# 确认文件存在
-if [ ! -f "$V2RAYA_DEB" ]; then
-    print_error "找不到 v2rayA 安装包: $V2RAYA_DEB"
-    exit 1
-fi
-
-print_info ""
-print_info "========================================"
-print_info "文件检查完成"
-print_info "========================================"
-print_info "v2rayA:    $V2RAYA_DEB"
-print_info "Xray-core:  $XRAY_ZIP (已解压)"
-print_info "========================================"
-print_info ""
-
-# 创建简化安装脚本（适配动态版本）
-print_info "创建简化安装脚本..."
-cat > install_v2raya_simple.sh <<'INSTALLEOF'
-#!/bin/bash
-
-# Ubuntu 22.04 v2rayA + Xray 简化安装脚本（动态版本）
-# 功能：安装 v2rayA 和 Xray
-
-set -e
-
-# 颜色输出
-RED='\033[0;31m'
-GREEN='\033[0;32m'
-YELLOW='\033[1;33m'
-NC='\033[0m'
-
-print_info() {
-    echo -e "${GREEN}[INFO]${NC} $1"
-}
-
-print_error() {
-    echo -e "${RED}[ERROR]${NC} $1"
-}
-
-print_warning() {
-    echo -e "${YELLOW}[WARNING]${NC} $1"
-}
-
-# 检查是否为 root 用户
-if [ "$EUID" -ne 0 ]; then
-    print_error "请使用 sudo 运行此脚本"
-    exit 1
-fi
-
-# 步骤 1: 更新 APT 缓存
-print_info "步骤 1: 更新 APT 缓存"
-
-print_info "更新 APT 缓存..."
-if ! apt update; then
-    print_error "APT 更新失败，请检查网络连接或配置正确的软件源"
-    print_error "如需配置国内镜像源，请手动编辑 /etc/apt/sources.list"
-    exit 1
-fi
-
-print_info "APT 缓存更新成功"
-
-# 步骤 2: 安装 v2rayA 和 Xray
-print_info "步骤 2: 安装 v2rayA 和 Xray"
-
-# 获取当前目录下的 .deb 文件（应该只有一个 v2rayA .deb）
-V2RAYA_DEB=$(ls -1 *.deb 2>/dev/null | grep -E "installer_debian" | head -n 1)
-if [ -z "$V2RAYA_DEB" ]; then
-    print_error "未找到 v2rayA 安装包 (installer_debian_*.deb)"
-    print_error "目录中的 .deb 文件:"
-    ls -1 *.deb
-    exit 1
-fi
-
-print_info "安装 $V2RAYA_DEB..."
-dpkg -i "$V2RAYA_DEB" || true
-
-# 安装 Xray 二进制文件
-if [ -d "xray" ]; then
-    print_info "安装 Xray-core 二进制文件..."
-    install -m 755 xray/xray /usr/local/bin/xray 2>/dev/null || \
-        install -m 755 xray/Xray /usr/local/bin/xray 2>/dev/null || {
-        print_error "无法安装 Xray 二进制文件"
-        exit 1
-    }
-    print_info "Xray-core 安装完成"
-else
-    print_warning "未找到 Xray 二进制文件，跳过 Xray 安装"
-fi
-
-# 修复依赖关系
-print_info "修复依赖关系..."
-apt --fix-broken install -y
-
-print_info "软件包安装完成"
-
-# 步骤 3: 重载并重启服务
-print_info "步骤 3: 重载并重启 v2rayA 服务"
-
-print_info "重载 systemd 配置..."
-systemctl daemon-reload
-
-print_info "重启 v2rayA 服务..."
-systemctl restart v2raya
-
-print_info "设置 v2rayA 开机自启..."
-systemctl enable v2raya
-
-# 检查服务状态
-print_info "检查 v2rayA 服务状态..."
-if systemctl is-active --quiet v2raya; then
-    print_info "v2rayA 服务运行正常"
-else
-    print_warning "v2rayA 服务未运行，请检查配置"
-    systemctl status v2raya --no-pager
-fi
-
-print_info ""
-print_info "========================================"
-print_info "安装完成！"
-print_info "v2rayA Web 界面: http://localhost:2017"
-print_info "启动服务: sudo systemctl start v2raya"
-print_info "停止服务: sudo systemctl stop v2raya"
-print_info "查看状态: sudo systemctl status v2raya"
-print_info "========================================"
-INSTALLEOF
-
-chmod +x install_v2raya_simple.sh
+# 生成并执行安装脚本
+generate_install_script "$V2RAYA_FILE" "$V2RAYA_VERSION" "$XRAY_VERSION"
 
 # 执行安装脚本
 print_info "开始执行安装脚本..."
