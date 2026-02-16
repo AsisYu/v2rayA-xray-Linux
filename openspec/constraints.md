@@ -180,3 +180,24 @@ curl -fsSL <public-url> | sudo bash
 | 提供多种加速方案 | ghproxy, fastgit 等 |
 | 包含适用场景说明 | 说明何时使用加速 |
 | 保持原有内容结构 | 向后兼容 |
+
+---
+
+## 变更 5: 添加 Claude AI 参与说明
+
+### 用户需求
+> 再添加claude合作说明本项目ai参与
+
+### 实施状态
+✅ **已实施** - README.md 已添加 Claude AI 参与说明
+
+### 变更详情
+详细约束和实施计划请参考: [openspec/changes/readme-claude-ai/constraints.md](./changes/readme-claude-ai/constraints.md)
+
+### 关键约束
+| 约束 | 说明 |
+|------|------|
+| 不使用 emoji | README.md 现有约束 |
+| 说明需真实反映 AI 参与情况 | 诚实性原则 |
+| 使用专业、客观的表述 | 专业性 |
+| 放在合适的位置 | 结构合理性 |
