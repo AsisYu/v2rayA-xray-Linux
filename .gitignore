@@ -25,3 +25,4 @@ Thumbs.db
 downloads/*.tar.gz
 downloads/*.deb
 downloads/*.zip
+downloads/*-installer-*
