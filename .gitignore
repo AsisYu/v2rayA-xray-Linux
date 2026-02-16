@@ -1,0 +1,24 @@
+# Claude 相关
+.claude/
+.ccb/
+.ccg/
+.cw/
+.workflow/
+
+# npm 相关
+node_modules/
+
+# 临时文件
+*.tmp
+*.log
+*.swp
+*~
+
+# 系统文件
+.DS_Store
+Thumbs.db
+
+# 下载的大文件
+downloads/*.tar.gz
+downloads/*.deb
+downloads/*.zip
