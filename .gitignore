@@ -5,6 +5,9 @@
 .cw/
 .workflow/
 
+# 开发文档
+openspec/
+
 # npm 相关
 node_modules/
 
