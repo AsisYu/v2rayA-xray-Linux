@@ -159,3 +159,24 @@ curl -fsSL <public-url> | sudo bash
 | 反映当前代码状态 | 基于实际的 setup.sh 功能 |
 | 包含一条命令安装 | 提及 curl 管道安装方式 |
 | 目标系统明确 | Ubuntu 22.04 (Jammy Jellyfish) |
+
+---
+
+## 变更 4: 添加 GitHub 加速说明
+
+### 用户需求
+> 更新 @README.md 并添加一个github加速说明
+
+### 实施状态
+✅ **已实施** - README.md 已添加 GitHub 加速说明
+
+### 变更详情
+详细约束和实施计划请参考: [openspec/changes/readme-github-acceleration/constraints.md](./changes/readme-github-acceleration/constraints.md)
+
+### 关键约束
+| 约束 | 说明 |
+|------|------|
+| 不使用 emoji | README.md 现有约束 |
+| 提供多种加速方案 | ghproxy, fastgit 等 |
+| 包含适用场景说明 | 说明何时使用加速 |
+| 保持原有内容结构 | 向后兼容 |

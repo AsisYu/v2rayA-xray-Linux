@@ -18,13 +18,42 @@ v2rayA + Xray 一键安装包，支持 Ubuntu 22.04 (Jammy Jellyfish)。
 
 ## 快速安装（一条命令）
 
+### 标准安装
+
 将脚本托管到 GitHub 后，使用以下命令：
 
 ```bash
-curl -fsSL https://raw.githubusercontent.com/<owner>/<repo>/main/setup.sh | sudo bash
+curl -fsSL https://raw.githubusercontent.com/AsisYu/v2rayA-xray-Linux/main/setup.sh | sudo bash
 ```
 
-> 注意：请将 `<owner>` 和 `<repo>` 替换为实际的 GitHub 仓库信息。
+### GitHub 加速访问
+
+如果 GitHub 访问速度较慢或无法访问，可以使用以下加速方案：
+
+#### 方案 1：使用 ghproxy 代理
+
+```bash
+curl -fsSL https://mirror.ghproxy.com/https://raw.githubusercontent.com/AsisYu/v2rayA-xray-Linux/main/setup.sh | sudo bash
+```
+
+#### 方案 2：使用 fastgit 加速
+
+```bash
+curl -fsSL https://raw.fastgit.org/AsisYu/v2rayA-xray-Linux/main/setup.sh | sudo bash
+```
+
+#### 方案 3：手动下载后安装
+
+如果上述方案都无法访问，可以手动下载 setup.sh 后执行：
+
+1. 从以下地址下载 setup.sh：
+   - 标准：https://github.com/AsisYu/v2rayA-xray-Linux/raw/main/setup.sh
+   - 加速：https://mirror.ghproxy.com/https://github.com/AsisYu/v2rayA-xray-Linux/raw/main/setup.sh
+
+2. 下载后执行：
+```bash
+sudo bash setup.sh
+```
 
 ## 常规安装
 
@@ -86,8 +115,41 @@ sudo systemctl disable v2raya    # 取消开机自启
 
 ## 开源仓库
 
+### 本项目
+
+- 主仓库：https://github.com/AsisYu/v2rayA-xray-Linux
+- 加速访问：https://mirror.ghproxy.com/https://github.com/AsisYu/v2rayA-xray-Linux
+
+### 依赖项目
+
 - v2rayA: https://github.com/v2rayA/v2rayA
 - Xray-core: https://github.com/XTLS/Xray-core
+
+## 网络加速
+
+如果在使用过程中遇到 GitHub 访问问题：
+
+### 克隆加速
+
+```bash
+# 使用 fastgit
+git clone https://hub.fastgit.xyz/AsisYu/v2rayA-xray-Linux.git
+
+# 使用 ghproxy
+git clone https://mirror.ghproxy.com/https://github.com/AsisYu/v2rayA-xray-Linux.git
+```
+
+### 文件下载加速
+
+使用 ghproxy 在原始 URL 前添加前缀：
+```
+原 URL: https://github.com/...
+加速 URL: https://mirror.ghproxy.com/https://github.com/...
+```
+
+### 恢复官方源
+
+加速镜像可能存在同步延迟，如需获取最新内容，请使用官方 GitHub 地址。
 
 ## 许可证
 
