@@ -1,65 +1,76 @@
 # v2rayA-for-Linux
 
-v2rayA + Xray 一键安装包，支持 Ubuntu 22.04 (Jammy Jellyfish)。
+v2rayA + Xray 一键安装包，支持 Debian/Ubuntu 和 CentOS/RHEL 系列。
 
 ## 功能特性
 
 - 动态版本加载：自动从 GitHub 获取最新版本
 - 一条命令安装：支持 curl 管道直接安装
+- 多系统支持：Debian/Ubuntu, CentOS/RHEL, Rocky Linux, AlmaLinux
 - 多架构支持：amd64, arm64, armv7, loongarch64, mips32/64, riscv64
 - 自动依赖安装：自动安装 jq, unzip 等依赖工具
 - 自动服务启动：安装后自动启动并设置开机自启
+- GitHub 代理支持：支持配置代理解决国内网络问题
 
 ## 系统要求
 
-- 操作系统：Ubuntu 22.04 (Jammy Jellyfish)
+### 支持的操作系统
+
+| 系统 | 版本 |
+|------|------|
+| Debian | 10/11/12 |
+| Ubuntu | 20.04/22.04/24.04 |
+| CentOS | 7/8/9 (Stream) |
+| RHEL | 7/8/9 |
+| Rocky Linux | 8/9 |
+| AlmaLinux | 8/9 |
+| Fedora | 最新版 |
+
+### 其他要求
+
 - 权限：需要 root/sudo 权限
 - 网络：需访问 GitHub Releases API 和下载文件
 
 ## 快速安装（一条命令）
 
+### 标准安装
+
 ```bash
 curl -fsSL https://raw.githubusercontent.com/AsisYu/v2rayA-xray-Linux/main/setup.sh | sudo bash
 ```
 
-### GitHub 加速访问
-
-如果 GitHub 访问速度较慢或无法访问，可以使用加速方案：
+### 国内服务器（使用 GitHub 加速）
 
 ```bash
+# 设置 GitHub 代理环境变量
+export GITHUB_API_PROXY=https://v6.gh-proxy.org/https://api.github.com
+export GITHUB_DOWNLOAD_PROXY=https://v6.gh-proxy.org
+
+# 使用加速地址下载并安装
 curl -fsSL https://v6.gh-proxy.org/https://raw.githubusercontent.com/AsisYu/v2rayA-xray-Linux/main/setup.sh | sudo bash
 ```
 
-### 手动下载后安装
-
-如果上述方案都无法访问，可以手动下载 setup.sh 后执行：
-
-1. 从以下地址下载 setup.sh：
-   - 标准：https://github.com/AsisYu/v2rayA-xray-Linux/raw/main/setup.sh
-   - 加速：https://v6.gh-proxy.org/https://github.com/AsisYu/v2rayA-xray-Linux/raw/main/setup.sh
-
-2. 下载后执行：
-```bash
-sudo bash setup.sh
-```
-
-## 常规安装
-
-下载 setup.sh 后本地执行：
+### 一行命令（国内服务器推荐）
 
 ```bash
-sudo bash setup.sh
+GITHUB_API_PROXY=https://v6.gh-proxy.org/https://api.github.com GITHUB_DOWNLOAD_PROXY=https://v6.gh-proxy.org curl -fsSL https://v6.gh-proxy.org/https://raw.githubusercontent.com/AsisYu/v2rayA-xray-Linux/main/setup.sh | sudo bash
 ```
+
+## 环境变量配置
+
+| 变量 | 说明 | 示例 |
+|------|------|------|
+| `GITHUB_API_PROXY` | GitHub API 代理地址 | `https://v6.gh-proxy.org/https://api.github.com` |
+| `GITHUB_DOWNLOAD_PROXY` | GitHub 文件下载代理 | `https://v6.gh-proxy.org` |
 
 ## 安装过程说明
 
-1. 检测系统架构
-2. 自动安装依赖工具（jq, unzip）
+1. 检测系统架构和操作系统类型
+2. 自动安装依赖工具（jq, unzip, curl）
 3. 从 GitHub API 获取最新版本号
 4. 下载 v2rayA 和 Xray-core 安装包
-5. 更新 APT 源为阿里云镜像
-6. 安装软件包
-7. 启动 v2rayA 服务并设置开机自启
+5. 安装软件包（Debian 使用 dpkg，CentOS 使用 yum/dnf）
+6. 启动 v2rayA 服务并设置开机自启
 
 ## 安装后访问
 
@@ -97,8 +108,7 @@ sudo systemctl disable v2raya    # 取消开机自启
 
 | 文件 | 说明 |
 |------|------|
-| setup.sh | 主安装脚本，支持动态版本加载 |
-| CLAUDE.md | Claude Code 项目指导文档 |
+| setup.sh | 主安装脚本，支持动态版本加载和多系统 |
 
 ## AI 辅助开发
 
@@ -110,7 +120,8 @@ Claude AI 参与了以下开发工作：
 
 - 动态版本加载功能设计与实现
 - 一条命令安装功能开发
-- GitHub 加速访问方案编写
+- CentOS/RHEL 系统支持实现
+- GitHub 代理支持功能
 - 多架构支持实现
 - 文档编写和优化
 
@@ -137,23 +148,18 @@ Claude AI 参与了以下开发工作：
 
 如果在使用过程中遇到 GitHub 访问问题：
 
-### 克隆加速
+### 常用代理地址
 
-```bash
-git clone https://v6.gh-proxy.org/https://github.com/AsisYu/v2rayA-xray-Linux.git
-```
+- `https://v6.gh-proxy.org`
+- `https://ghproxy.net`
 
-### 文件下载加速
+### 使用方式
 
-在原始 URL 前添加前缀：
+在原始 URL 前添加代理前缀：
 ```
 原 URL: https://github.com/...
 加速 URL: https://v6.gh-proxy.org/https://github.com/...
 ```
-
-### 恢复官方源
-
-加速镜像可能存在同步延迟，如需获取最新内容，请使用官方 GitHub 地址。
 
 ## 许可证
 
