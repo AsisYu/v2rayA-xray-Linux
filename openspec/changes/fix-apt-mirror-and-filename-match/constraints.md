@@ -138,14 +138,14 @@ fi
 - [x] 支持 wget 和 curl 两种下载工具
 - [x] 修复 wget 选项（--progress=bar:force）
 - [x] 添加 curl 错误处理（--fail --show-error）
-- [ ] 更新 openspec/constraints.md 文档（本文档）
-- [ ] 删除过时的 downloads/ 目录中的旧安装包
+- [x] 更新 openspec/constraints.md 文档（本文档）
+- [x] 在 .gitignore 中排除旧安装包目录（不再分发预构建包）
 
 ## 风险
 
 | ID | 风险描述 | 缓解措施 |
 |----|---------|------|
-| R1 | 用户使用旧安装包时仍会修改镜像源 | 文档说明新行为，旧包已废弃 |
+| R1 | downloads/ 目录中的旧安装包仍会修改镜像源 | 旧包已从 git 排除（.gitignore），用户应使用 setup.sh 最新版本 |
 | R2 | 临时网络问题导致 apt update 失败 | 提示用户检查网络连接和软件源配置 |
 
 ## 成功判据
