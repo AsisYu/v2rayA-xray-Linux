@@ -105,7 +105,7 @@ detect_os() {
             OS_TYPE="rpm"
             # CentOS 8/RHEL 8+ 使用 dnf
             # 提取主版本号（处理 8.10 这样的版本号）
-            VERSION_MAJOR=\$(echo "\$VERSION_ID" | cut -d. -f1)
+            VERSION_MAJOR=$(echo "\$VERSION_ID" | cut -d. -f1)
             if [ "\$VERSION_MAJOR" -ge "8" ] || [ "\$ID" = "fedora" ] || [ "\$ID" = "rocky" ] || [ "\$ID" = "almalinux" ]; then
                 PKG_MGR="dnf"
             else
