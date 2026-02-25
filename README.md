@@ -94,6 +94,27 @@ sudo systemctl enable v2raya     # 设置开机自启
 sudo systemctl disable v2raya    # 取消开机自启
 ```
 
+## 卸载
+
+```bash
+# 标准卸载
+sudo ./uninstall.sh
+
+# 强制卸载
+sudo ./uninstall.sh --force
+
+# 完全清理（含配置、缓存、日志）
+sudo ./uninstall.sh --purge
+```
+
+卸载脚本功能：
+- 自动检测安装方式（dpkg/rpm/本地二进制）
+- 停止并禁用 v2raya 服务
+- 卸载 v2rayA 软件包或二进制
+- 删除 Xray 二进制文件
+- 清理 geoip.dat 和 geosite.dat 数据文件
+- 可选清理配置、缓存、日志（--purge）
+
 ## 架构支持
 
 | 系统架构 | 支持状态 |
