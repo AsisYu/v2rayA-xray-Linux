@@ -11,38 +11,6 @@ set -e
 V2RAYA_REPO="v2rayA/v2rayA"
 XRAY_REPO="XTLS/Xray-core"
 
-# 架构配置（默认 amd64，可自动检测）
-ARCH="${ARCH:-amd64}"
-
-# v2rayA Debian 架构映射
-case "$ARCH" in
-    amd64|x86_64) V2RAYA_ARCH="x64" ;;
-    arm64|aarch64) V2RAYA_ARCH="arm64" ;;
-    armv7|armhf) V2RAYA_ARCH="armv7" ;;
-    loongarch64) V2RAYA_ARCH="loongarch64" ;;
-    mips64) V2RAYA_ARCH="mips64" ;;
-    mips64le) V2RAYA_ARCH="mips64le" ;;
-    mips32) V2RAYA_ARCH="mips32" ;;
-    mips32le) V2RAYA_ARCH="mips32le" ;;
-    riscv64) V2RAYA_ARCH="riscv64" ;;
-    *) V2RAYA_ARCH="x64" ;;
-esac
-
-# v2rayA RPM 架构映射（用于 CentOS/RHEL）
-case "$ARCH" in
-    amd64|x86_64) V2RAYA_RPM_ARCH="x64" ;;
-    arm64|aarch64) V2RAYA_RPM_ARCH="arm64" ;;
-    *) V2RAYA_RPM_ARCH="x64" ;;
-esac
-
-# Xray-core Linux 架构映射
-case "$ARCH" in
-    amd64|x86_64) XRAY_ARCH="64" ;;
-    arm64|aarch64) XRAY_ARCH="arm64-v8a" ;;
-    armv7|armhf) XRAY_ARCH="arm32-v7a" ;;
-    *) XRAY_ARCH="64" ;;
-esac
-
 # =================================================
 
 # GitHub API 代理配置（国内服务器可设置）
@@ -208,7 +176,7 @@ get_latest_version() {
 
     # 带重试的 API 调用
     while [ $retry -lt $max_retries ]; do
-        release_json=$(curl -s --max-time 30 "$api_url" 2>/dev/null)
+        release_json=$(curl -s --max-time 30 "$api_url" 2>/dev/null) || true
 
         if [ -n "$release_json" ] && [ "$(echo "$release_json" | jq -r '.tag_name' 2>/dev/null)" != "null" ]; then
             break
@@ -591,39 +559,6 @@ else
     print_info "v2rayA 安装完成"
 fi
 
-# 步骤 2: 安装 Xray-core
-print_info "步骤 2: 安装 Xray-core"
-
-# 检测 Xray 二进制路径（优先使用已安装的）
-XRAY_BIN=""
-if command -v xray &> /dev/null; then
-    XRAY_BIN=$(command -v xray)
-    print_info "检测到已安装的 Xray: \$XRAY_BIN"
-elif [ -f "/usr/bin/xray" ]; then
-    XRAY_BIN="/usr/bin/xray"
-elif [ -f "/usr/local/bin/xray" ]; then
-    XRAY_BIN="/usr/local/bin/xray"
-fi
-
-if [ -d "xray" ]; then
-    # 有新下载的 Xray，安装到检测到的目录
-    if [ -n "\$XRAY_BIN" ]; then
-        TARGET_DIR=\$(dirname "\$XRAY_BIN")
-    else
-        # 默认安装到 /usr/local/bin
-        TARGET_DIR="/usr/local/bin"
-    fi
-    print_info "安装 Xray-core 二进制文件到 \$TARGET_DIR..."
-    install -m 755 xray/xray "\$TARGET_DIR/xray" 2>/dev/null || \\
-        install -m 755 xray/Xray "\$TARGET_DIR/xray" 2>/dev/null || {
-        print_error "无法安装 Xray 二进制文件"
-        exit 1
-    }
-    XRAY_BIN="\$TARGET_DIR/xray"
-    print_info "Xray-core 安装完成: \$XRAY_BIN"
-elif [ -n "\$XRAY_BIN" ]; then
-    print_info "使用系统已有的 Xray: \$XRAY_BIN"
-else
     print_warning "未找到 Xray 二进制文件，跳过 Xray 安装"
 fi
 
@@ -752,6 +687,36 @@ RPMEOF
 
 # 执行前置检查
 detect_arch
+
+# v2rayA Debian 架构映射
+case "$ARCH" in
+    amd64|x86_64) V2RAYA_ARCH="x64" ;;
+    arm64|aarch64) V2RAYA_ARCH="arm64" ;;
+    armv7|armhf) V2RAYA_ARCH="armv7" ;;
+    loongarch64) V2RAYA_ARCH="loongarch64" ;;
+    mips64) V2RAYA_ARCH="mips64" ;;
+    mips64le) V2RAYA_ARCH="mips64le" ;;
+    mips32) V2RAYA_ARCH="mips32" ;;
+    mips32le) V2RAYA_ARCH="mips32le" ;;
+    riscv64) V2RAYA_ARCH="riscv64" ;;
+    *) V2RAYA_ARCH="x64" ;;
+esac
+
+# v2rayA RPM 架构映射（用于 CentOS/RHEL）
+case "$ARCH" in
+    amd64|x86_64) V2RAYA_RPM_ARCH="x64" ;;
+    arm64|aarch64) V2RAYA_RPM_ARCH="arm64" ;;
+    *) V2RAYA_RPM_ARCH="x64" ;;
+esac
+
+# Xray-core Linux 架构映射
+case "$ARCH" in
+    amd64|x86_64) XRAY_ARCH="64" ;;
+    arm64|aarch64) XRAY_ARCH="arm64-v8a" ;;
+    armv7|armhf) XRAY_ARCH="arm32-v7a" ;;
+    *) XRAY_ARCH="64" ;;
+esac
+
 detect_os
 check_dependencies
 
