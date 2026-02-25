@@ -516,28 +516,12 @@ else
     print_warning "未找到 Xray 二进制文件，跳过 Xray 安装"
 fi
 
-# 步骤 3: 下载 v2rayA 数据文件
-print_info "步骤 3: 下载 v2rayA 数据文件"
+# 步骤 3: 下载 geoip.dat 和 geosite.dat
+print_info "步骤 3: 下载 geoip.dat 和 geosite.dat"
 
-# 根据安装方式确定数据文件目录
-if [[ "\$V2RAYA_FILE" == *.rpm ]]; then
-    # RPM 安装：检查常见目录
-    if [ -d "/usr/share/v2raya" ]; then
-        V2RAYA_DIR="/usr/share/v2raya"
-    elif [ -d "/usr/local/share/v2raya" ]; then
-        V2RAYA_DIR="/usr/local/share/v2raya"
-    elif [ -d "/var/lib/v2raya" ]; then
-        V2RAYA_DIR="/var/lib/v2raya"
-    else
-        # 创建目录（使用 /usr/share 优先）
-        V2RAYA_DIR="/usr/share/v2raya"
-        mkdir -p "\$V2RAYA_DIR"
-    fi
-else
-    # 通用二进制安装：使用 /usr/local/share/v2raya
-    V2RAYA_DIR="/usr/local/share/v2raya"
-    mkdir -p "\$V2RAYA_DIR"
-fi
+# 数据文件放在 /usr/local/bin/，和 Xray 二进制在一起
+V2RAYA_DIR="/usr/local/bin"
+mkdir -p "\$V2RAYA_DIR"
 
 print_info "数据文件目录: \$V2RAYA_DIR"
 
