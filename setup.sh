@@ -390,17 +390,52 @@ fi
 print_info "安装 \$V2RAYA_DEB..."
 dpkg -i "\$V2RAYA_DEB" || true
 
-# 安装 Xray 二进制文件
+# 检测 Xray 二进制路径（优先使用已安装的）
+XRAY_BIN=""
+if command -v xray &> /dev/null; then
+    XRAY_BIN=$(command -v xray)
+    print_info "检测到已安装的 Xray: \$XRAY_BIN"
+elif [ -f "/usr/bin/xray" ]; then
+    XRAY_BIN="/usr/bin/xray"
+elif [ -f "/usr/local/bin/xray" ]; then
+    XRAY_BIN="/usr/local/bin/xray"
+fi
+
 if [ -d "xray" ]; then
-    print_info "安装 Xray-core 二进制文件..."
-    install -m 755 xray/xray /usr/local/bin/xray 2>/dev/null || \\
-        install -m 755 xray/Xray /usr/local/bin/xray 2>/dev/null || {
+    # 有新下载的 Xray，安装到检测到的目录
+    if [ -n "\$XRAY_BIN" ]; then
+        TARGET_DIR=\$(dirname "\$XRAY_BIN")
+    else
+        # 默认安装到 /usr/local/bin
+        TARGET_DIR="/usr/local/bin"
+    fi
+    print_info "安装 Xray-core 二进制文件到 \$TARGET_DIR..."
+    install -m 755 xray/xray "\$TARGET_DIR/xray" 2>/dev/null || \\
+        install -m 755 xray/Xray "\$TARGET_DIR/xray" 2>/dev/null || {
         print_error "无法安装 Xray 二进制文件"
         exit 1
     }
-    print_info "Xray-core 安装完成"
+    XRAY_BIN="\$TARGET_DIR/xray"
+    print_info "Xray-core 安装完成: \$XRAY_BIN"
+elif [ -n "\$XRAY_BIN" ]; then
+    print_info "使用系统已有的 Xray: \$XRAY_BIN"
 else
     print_warning "未找到 Xray 二进制文件，跳过 Xray 安装"
+fi
+
+# 步骤 3: 下载 geoip.dat 和 geosite.dat
+print_info "步骤 3: 下载 geoip.dat 和 geosite.dat"
+
+# 数据文件放在 Xray 所在目录
+if [ -n "\$XRAY_BIN" ]; then
+    V2RAYA_DIR=\$(dirname "\$XRAY_BIN")
+    mkdir -p "\$V2RAYA_DIR"
+    print_info "数据文件目录: \$V2RAYA_DIR"
+else
+    # XRAY_BIN 为空时，使用默认目录
+    V2RAYA_DIR="/usr/local/bin"
+    mkdir -p "\$V2RAYA_DIR"
+    print_info "数据文件目录: \$V2RAYA_DIR（默认）"
 fi
 
 # 修复依赖关系
@@ -504,14 +539,35 @@ fi
 # 步骤 2: 安装 Xray-core
 print_info "步骤 2: 安装 Xray-core"
 
+# 检测 Xray 二进制路径（优先使用已安装的）
+XRAY_BIN=""
+if command -v xray &> /dev/null; then
+    XRAY_BIN=$(command -v xray)
+    print_info "检测到已安装的 Xray: \$XRAY_BIN"
+elif [ -f "/usr/bin/xray" ]; then
+    XRAY_BIN="/usr/bin/xray"
+elif [ -f "/usr/local/bin/xray" ]; then
+    XRAY_BIN="/usr/local/bin/xray"
+fi
+
 if [ -d "xray" ]; then
-    print_info "安装 Xray-core 二进制文件..."
-    install -m 755 xray/xray /usr/local/bin/xray 2>/dev/null || \\
-        install -m 755 xray/Xray /usr/local/bin/xray 2>/dev/null || {
+    # 有新下载的 Xray，安装到检测到的目录
+    if [ -n "\$XRAY_BIN" ]; then
+        TARGET_DIR=\$(dirname "\$XRAY_BIN")
+    else
+        # 默认安装到 /usr/local/bin
+        TARGET_DIR="/usr/local/bin"
+    fi
+    print_info "安装 Xray-core 二进制文件到 \$TARGET_DIR..."
+    install -m 755 xray/xray "\$TARGET_DIR/xray" 2>/dev/null || \\
+        install -m 755 xray/Xray "\$TARGET_DIR/xray" 2>/dev/null || {
         print_error "无法安装 Xray 二进制文件"
         exit 1
     }
-    print_info "Xray-core 安装完成"
+    XRAY_BIN="\$TARGET_DIR/xray"
+    print_info "Xray-core 安装完成: \$XRAY_BIN"
+elif [ -n "\$XRAY_BIN" ]; then
+    print_info "使用系统已有的 Xray: \$XRAY_BIN"
 else
     print_warning "未找到 Xray 二进制文件，跳过 Xray 安装"
 fi
@@ -519,11 +575,17 @@ fi
 # 步骤 3: 下载 geoip.dat 和 geosite.dat
 print_info "步骤 3: 下载 geoip.dat 和 geosite.dat"
 
-# 数据文件放在 /usr/local/bin/，和 Xray 二进制在一起
-V2RAYA_DIR="/usr/local/bin"
-mkdir -p "\$V2RAYA_DIR"
-
-print_info "数据文件目录: \$V2RAYA_DIR"
+# 数据文件放在 Xray 所在目录
+if [ -n "\$XRAY_BIN" ]; then
+    V2RAYA_DIR=\$(dirname "\$XRAY_BIN")
+    mkdir -p "\$V2RAYA_DIR"
+    print_info "数据文件目录: \$V2RAYA_DIR"
+else
+    # XRAY_BIN 为空时，使用默认目录
+    V2RAYA_DIR="/usr/local/bin"
+    mkdir -p "\$V2RAYA_DIR"
+    print_info "数据文件目录: \$V2RAYA_DIR（默认）"
+fi
 
 # 检查是否设置了 GitHub 下载代理
 if [ -n "\$GITHUB_DOWNLOAD_PROXY" ]; then
