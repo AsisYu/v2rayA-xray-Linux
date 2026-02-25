@@ -70,7 +70,8 @@ sudo -E bash -c 'GITHUB_API_PROXY=https://v6.gh-proxy.org/https://api.github.com
 3. 从 GitHub API 获取最新版本号
 4. 下载 v2rayA 和 Xray-core 安装包
 5. 安装软件包（Debian 使用 dpkg，CentOS 使用 yum/dnf）
-6. 启动 v2rayA 服务并设置开机自启
+6. 预下载 geoip.dat 和 geosite.dat 数据文件（支持代理）
+7. 配置并启动 v2rayA 服务
 
 ## 安装后访问
 

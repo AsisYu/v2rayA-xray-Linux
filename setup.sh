@@ -516,7 +516,63 @@ else
     print_warning "未找到 Xray 二进制文件，跳过 Xray 安装"
 fi
 
-# 步骤 3: 配置 systemd 服务
+# 步骤 3: 下载 v2rayA 数据文件
+print_info "步骤 3: 下载 v2rayA 数据文件"
+
+# 创建数据文件目录
+V2RAYA_DIR="/usr/local/share/v2raya"
+mkdir -p "\$V2RAYA_DIR"
+
+# 检查是否设置了 GitHub 下载代理
+if [ -n "\$GITHUB_DOWNLOAD_PROXY" ]; then
+    DOWNLOAD_PROXY="\${GITHUB_DOWNLOAD_PROXY}"
+    print_info "使用 GitHub 下载代理"
+else
+    DOWNLOAD_PROXY=""
+    print_warning "未设置 GitHub 下载代理，直接下载"
+fi
+
+# 下载 geoip.dat
+GEOIP_URL="https://github.com/Loyalsoldier/v2ray-rules-dat/releases/latest/download/geoip.dat"
+if [ -n "\$DOWNLOAD_PROXY" ]; then
+    GEOIP_URL="\${DOWNLOAD_PROXY}/\${GEOIP_URL}"
+fi
+
+print_info "下载 geoip.dat..."
+if command -v curl &> /dev/null; then
+    curl -fsSL --max-time 300 "\$GEOIP_URL" -o "\$V2RAYA_DIR/geoip.dat"
+elif command -v wget &> /dev/null; then
+    wget --timeout=300 -O "\$V2RAYA_DIR/geoip.dat" "\$GEOIP_URL"
+else
+    print_warning "无法下载 geoip.dat，将使用默认规则"
+fi
+
+# 下载 geosite.dat
+GEOSITE_URL="https://github.com/Loyalsoldier/v2ray-rules-dat/releases/latest/download/geosite.dat"
+if [ -n "\$DOWNLOAD_PROXY" ]; then
+    GEOSITE_URL="\${DOWNLOAD_PROXY}/\${GEOSITE_URL}"
+fi
+
+print_info "下载 geosite.dat..."
+if command -v curl &> /dev/null; then
+    curl -fsSL --max-time 300 "\$GEOSITE_URL" -o "\$V2RAYA_DIR/geosite.dat"
+elif command -v wget &> /dev/null; then
+    wget --timeout=300 -O "\$V2RAYA_DIR/geosite.dat" "\$GEOSITE_URL"
+else
+    print_warning "无法下载 geosite.dat，将使用默认规则"
+fi
+
+# 设置文件权限
+if [ -f "\$V2RAYA_DIR/geoip.dat" ]; then
+    chmod 644 "\$V2RAYA_DIR/geoip.dat"
+    print_info "geoip.dat 下载完成"
+fi
+if [ -f "\$V2RAYA_DIR/geosite.dat" ]; then
+    chmod 644 "\$V2RAYA_DIR/geosite.dat"
+    print_info "geosite.dat 下载完成"
+fi
+
+# 步骤 4: 配置 systemd 服务
 print_info "步骤 3: 配置 v2rayA 服务"
 
 if [[ "\$V2RAYA_FILE" == *.rpm ]]; then
@@ -546,8 +602,8 @@ systemctl enable v2raya
 
 print_info "systemd 服务配置完成"
 
-# 步骤 4: 启动服务
-print_info "步骤 4: 启动 v2rayA 服务"
+# 步骤 5: 启动服务
+print_info "步骤 5: 启动 v2rayA 服务"
 
 systemctl start v2raya || print_warning "v2raya 服务启动可能失败"
 
