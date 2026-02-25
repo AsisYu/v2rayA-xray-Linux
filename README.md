@@ -53,7 +53,7 @@ curl -fsSL https://v6.gh-proxy.org/https://raw.githubusercontent.com/AsisYu/v2ra
 ### 一行命令（国内服务器推荐）
 
 ```bash
-curl -fsSL https://v6.gh-proxy.org/https://raw.githubusercontent.com/AsisYu/v2rayA-xray-Linux/main/setup.sh | sudo -E bash -c 'GITHUB_API_PROXY=https://v6.gh-proxy.org/https://api.github.com GITHUB_DOWNLOAD_PROXY=https://v6.gh-proxy.org bash'
+sudo -E bash -c 'GITHUB_API_PROXY=https://v6.gh-proxy.org/https://api.github.com GITHUB_DOWNLOAD_PROXY=https://v6.gh-proxy.org curl -fsSL https://v6.gh-proxy.org/https://raw.githubusercontent.com/AsisYu/v2rayA-xray-Linux/main/setup.sh | bash'
 ```
 
 ## 环境变量配置
