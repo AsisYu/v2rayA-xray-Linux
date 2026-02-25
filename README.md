@@ -46,14 +46,14 @@ curl -fsSL https://raw.githubusercontent.com/AsisYu/v2rayA-xray-Linux/main/setup
 export GITHUB_API_PROXY=https://v6.gh-proxy.org/https://api.github.com
 export GITHUB_DOWNLOAD_PROXY=https://v6.gh-proxy.org
 
-# 使用加速地址下载并安装
-curl -fsSL https://v6.gh-proxy.org/https://raw.githubusercontent.com/AsisYu/v2rayA-xray-Linux/main/setup.sh | sudo bash
+# 使用加速地址下载并安装（使用 sudo -E 保留环境变量）
+curl -fsSL https://v6.gh-proxy.org/https://raw.githubusercontent.com/AsisYu/v2rayA-xray-Linux/main/setup.sh | sudo -E bash
 ```
 
 ### 一行命令（国内服务器推荐）
 
 ```bash
-GITHUB_API_PROXY=https://v6.gh-proxy.org/https://api.github.com GITHUB_DOWNLOAD_PROXY=https://v6.gh-proxy.org curl -fsSL https://v6.gh-proxy.org/https://raw.githubusercontent.com/AsisYu/v2rayA-xray-Linux/main/setup.sh | sudo bash
+curl -fsSL https://v6.gh-proxy.org/https://raw.githubusercontent.com/AsisYu/v2rayA-xray-Linux/main/setup.sh | sudo -E bash -c 'GITHUB_API_PROXY=https://v6.gh-proxy.org/https://api.github.com GITHUB_DOWNLOAD_PROXY=https://v6.gh-proxy.org bash'
 ```
 
 ## 环境变量配置

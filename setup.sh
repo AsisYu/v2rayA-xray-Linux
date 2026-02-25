@@ -195,6 +195,9 @@ get_latest_version() {
         print_info "使用 GitHub API 代理: $GITHUB_API_PROXY"
     else
         api_url="https://api.github.com/repos/${repo}/releases/latest"
+        print_warning "未检测到 GITHUB_API_PROXY 环境变量，直接连接 GitHub API"
+        print_warning "如需使用代理，请执行:"
+        print_warning "  sudo -E bash -c 'GITHUB_API_PROXY=... GITHUB_DOWNLOAD_PROXY=... curl ... | bash'"
     fi
 
     # 带重试的 API 调用
