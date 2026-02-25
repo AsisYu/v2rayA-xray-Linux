@@ -104,11 +104,17 @@ detect_os() {
         rhel|centos|rocky|almalinux)
             OS_TYPE="rpm"
             # CentOS 8/RHEL 8+ 使用 dnf
-            if [ "$VERSION_ID" -ge "8" ] || [ "$ID" = "fedora" ] || [ "$ID" = "rocky" ] || [ "$ID" = "almalinux" ]; then
+            # 提取主版本号（处理 8.10 这样的版本号）
+            VERSION_MAJOR=\$(echo "\$VERSION_ID" | cut -d. -f1)
+            if [ "\$VERSION_MAJOR" -ge "8" ] || [ "\$ID" = "fedora" ] || [ "\$ID" = "rocky" ] || [ "\$ID" = "almalinux" ]; then
                 PKG_MGR="dnf"
             else
                 PKG_MGR="yum"
             fi
+            ;;
+        fedora)
+            OS_TYPE="rpm"
+            PKG_MGR="dnf"
             ;;
         *)
             print_error "不支持的操作系统: $ID"
@@ -436,6 +442,55 @@ else
     V2RAYA_DIR="/usr/local/bin"
     mkdir -p "\$V2RAYA_DIR"
     print_info "数据文件目录: \$V2RAYA_DIR（默认）"
+fi
+
+# 检查是否设置了 GitHub 下载代理
+if [ -n "\$GITHUB_DOWNLOAD_PROXY" ]; then
+    DOWNLOAD_PROXY="\${GITHUB_DOWNLOAD_PROXY}"
+    print_info "使用 GitHub 下载代理"
+else
+    DOWNLOAD_PROXY=""
+    print_warning "未设置 GitHub 下载代理，直接下载"
+fi
+
+# 下载 geoip.dat
+GEOIP_URL="https://github.com/Loyalsoldier/v2ray-rules-dat/releases/latest/download/geoip.dat"
+if [ -n "\$DOWNLOAD_PROXY" ]; then
+    GEOIP_URL="\${DOWNLOAD_PROXY}/\${GEOIP_URL}"
+fi
+
+print_info "下载 geoip.dat..."
+if command -v curl &> /dev/null; then
+    curl -fsSL --max-time 300 "\$GEOIP_URL" -o "\$V2RAYA_DIR/geoip.dat"
+elif command -v wget &> /dev/null; then
+    wget --timeout=300 -O "\$V2RAYA_DIR/geoip.dat" "\$GEOIP_URL"
+else
+    print_warning "无法下载 geoip.dat，将使用默认规则"
+fi
+
+# 下载 geosite.dat
+GEOSITE_URL="https://github.com/Loyalsoldier/v2ray-rules-dat/releases/latest/download/geosite.dat"
+if [ -n "\$DOWNLOAD_PROXY" ]; then
+    GEOSITE_URL="\${DOWNLOAD_PROXY}/\${GEOSITE_URL}"
+fi
+
+print_info "下载 geosite.dat..."
+if command -v curl &> /dev/null; then
+    curl -fsSL --max-time 300 "\$GEOSITE_URL" -o "\$V2RAYA_DIR/geosite.dat"
+elif command -v wget &> /dev/null; then
+    wget --timeout=300 -O "\$V2RAYA_DIR/geosite.dat" "\$GEOSITE_URL"
+else
+    print_warning "无法下载 geosite.dat，将使用默认规则"
+fi
+
+# 设置文件权限
+if [ -f "\$V2RAYA_DIR/geoip.dat" ]; then
+    chmod 644 "\$V2RAYA_DIR/geoip.dat"
+    print_info "geoip.dat 下载完成"
+fi
+if [ -f "\$V2RAYA_DIR/geosite.dat" ]; then
+    chmod 644 "\$V2RAYA_DIR/geosite.dat"
+    print_info "geosite.dat 下载完成"
 fi
 
 # 修复依赖关系
