@@ -788,6 +788,54 @@ trap cleanup EXIT
 # 进入临时目录
 cd "$TEMP_DIR"
 
+# 规范化代理值（去掉末尾 /）
+normalize_proxy_value() {
+    local proxy="$1"
+    while [[ -n "$proxy" && "$proxy" == */ ]]; do
+        proxy="${proxy%/}"
+    done
+    printf '%s' "$proxy"
+}
+
+# 剥离 URL 中已存在的代理前缀
+strip_existing_proxy_prefix() {
+    local url="$1"
+    local proxy="$2"
+
+    if [ -z "$proxy" ]; then
+        printf '%s' "$url"
+        return
+    fi
+
+    proxy=$(normalize_proxy_value "$proxy")
+    local prefix="${proxy}/"
+    while [[ "$url" == "$prefix"* ]]; do
+        url="${url#$prefix}"
+    done
+
+    printf '%s' "$url"
+}
+
+# 安全地包装 URL（避免多层嵌套）
+wrap_with_proxy() {
+    local proxy="$1"
+    local raw_url="$2"
+
+    if [ -z "$proxy" ]; then
+        printf '%s\n' "$raw_url"
+        return
+    fi
+
+    proxy=$(normalize_proxy_value "$proxy")
+    raw_url=$(strip_existing_proxy_prefix "$raw_url" "$proxy")
+    printf '%s/%s\n' "$proxy" "$raw_url"
+}
+
+# 规范化下载代理值
+if [ -n "$GITHUB_DOWNLOAD_PROXY" ]; then
+    GITHUB_DOWNLOAD_PROXY=$(normalize_proxy_value "$GITHUB_DOWNLOAD_PROXY")
+fi
+
 # 获取最新版本和文件名
 V2RAYA_INFO=$(get_latest_version "$V2RAYA_REPO" "v2rayA")
 V2RAYA_VERSION=$(echo "$V2RAYA_INFO" | head -1)
@@ -798,13 +846,16 @@ XRAY_VERSION=$(echo "$XRAY_INFO" | head -1)
 XRAY_ZIP=$(echo "$XRAY_INFO" | tail -1)
 
 # 构造下载 URL（支持代理）
+BASE_V2RAYA_URL="https://github.com/${V2RAYA_REPO}/releases/download/${V2RAYA_VERSION}/${V2RAYA_FILE}"
+BASE_XRAY_URL="https://github.com/${XRAY_REPO}/releases/download/${XRAY_VERSION}/${XRAY_ZIP}"
+
 if [ -n "$GITHUB_DOWNLOAD_PROXY" ]; then
-    V2RAYA_URL="${GITHUB_DOWNLOAD_PROXY}/https://github.com/${V2RAYA_REPO}/releases/download/${V2RAYA_VERSION}/${V2RAYA_FILE}"
-    XRAY_URL="${GITHUB_DOWNLOAD_PROXY}/https://github.com/${XRAY_REPO}/releases/download/${XRAY_VERSION}/${XRAY_ZIP}"
+    V2RAYA_URL=$(wrap_with_proxy "$GITHUB_DOWNLOAD_PROXY" "$BASE_V2RAYA_URL")
+    XRAY_URL=$(wrap_with_proxy "$GITHUB_DOWNLOAD_PROXY" "$BASE_XRAY_URL")
     print_info "使用 GitHub 下载代理: $GITHUB_DOWNLOAD_PROXY"
 else
-    V2RAYA_URL="https://github.com/${V2RAYA_REPO}/releases/download/${V2RAYA_VERSION}/${V2RAYA_FILE}"
-    XRAY_URL="https://github.com/${XRAY_REPO}/releases/download/${XRAY_VERSION}/${XRAY_ZIP}"
+    V2RAYA_URL="$BASE_V2RAYA_URL"
+    XRAY_URL="$BASE_XRAY_URL"
 fi
 
 print_info ""
