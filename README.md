@@ -42,18 +42,20 @@ curl -fsSL https://raw.githubusercontent.com/AsisYu/v2rayA-xray-Linux/main/setup
 ### 国内服务器（使用 GitHub 加速）
 
 ```bash
-# 设置 GitHub 代理环境变量
+# 方式一：先 export 再运行（推荐）
 export GITHUB_API_PROXY=https://v6.gh-proxy.org/https://api.github.com
 export GITHUB_DOWNLOAD_PROXY=https://v6.gh-proxy.org
-
-# 使用加速地址下载并安装（使用 sudo -E 保留环境变量）
 curl -fsSL https://v6.gh-proxy.org/https://raw.githubusercontent.com/AsisYu/v2rayA-xray-Linux/main/setup.sh | sudo -E bash
+
+# 方式二：使用 env 前缀传递环境变量
+curl -fsSL https://v6.gh-proxy.org/https://raw.githubusercontent.com/AsisYu/v2rayA-xray-Linux/main/setup.sh | env GITHUB_API_PROXY=https://v6.gh-proxy.org/https://api.github.com GITHUB_DOWNLOAD_PROXY=https://v6.gh-proxy.org sudo -E bash
 ```
 
 ### 一行命令（国内服务器推荐）
 
 ```bash
-sudo -E bash -c 'GITHUB_API_PROXY=https://v6.gh-proxy.org/https://api.github.com GITHUB_DOWNLOAD_PROXY=https://v6.gh-proxy.org curl -fsSL https://v6.gh-proxy.org/https://raw.githubusercontent.com/AsisYu/v2rayA-xray-Linux/main/setup.sh | bash'
+# 注意：管道 (|) 后的 bash 无法获取前面的环境变量，需使用 env 前缀
+curl -fsSL https://v6.gh-proxy.org/https://raw.githubusercontent.com/AsisYu/v2rayA-xray-Linux/main/setup.sh | env GITHUB_API_PROXY=https://v6.gh-proxy.org/https://api.github.com GITHUB_DOWNLOAD_PROXY=https://v6.gh-proxy.org sudo -E bash
 ```
 
 ## 环境变量配置

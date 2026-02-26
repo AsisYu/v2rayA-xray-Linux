@@ -11,6 +11,9 @@ set -e
 V2RAYA_REPO="v2rayA/v2rayA"
 XRAY_REPO="XTLS/Xray-core"
 
+# Xray-core Fallback 版本（当 GitHub API 失败时使用）
+XRAY_FALLBACK_VERSION="v26.2.6"
+
 # =================================================
 
 # GitHub API 代理配置（国内服务器可设置）
@@ -171,7 +174,10 @@ get_latest_version() {
         api_url="https://api.github.com/repos/${repo}/releases/latest"
         print_warning "未检测到 GITHUB_API_PROXY 环境变量，直接连接 GitHub API"
         print_warning "如需使用代理，请执行:"
-        print_warning "  sudo -E bash -c 'GITHUB_API_PROXY=... GITHUB_DOWNLOAD_PROXY=... curl ... | bash'"
+        print_warning "  export GITHUB_API_PROXY=https://v6.gh-proxy.org/https://api.github.com"
+        print_warning "  export GITHUB_DOWNLOAD_PROXY=https://v6.gh-proxy.org"
+        print_warning "  curl -fsSL ... | sudo -E bash"
+        print_warning "  # 或使用 env 前缀: curl ... | env GITHUB_API_PROXY=... GITHUB_DOWNLOAD_PROXY=... sudo -E bash"
     fi
 
     # 带重试的 API 调用
@@ -190,6 +196,15 @@ get_latest_version() {
     done
 
     if [ -z "$release_json" ]; then
+        # Xray-core API 失败时使用 fallback 版本
+        if [ "$name" = "Xray-core" ]; then
+            print_warning "GitHub API 获取 $name 失败，使用 fallback 版本: $XRAY_FALLBACK_VERSION"
+            version="$XRAY_FALLBACK_VERSION"
+            filename="Xray-linux-${XRAY_ARCH}.zip"
+            echo "$version"
+            echo "$filename"
+            return
+        fi
         print_error "无法获取 $name 的 release 信息"
         print_error "请检查网络连接或设置 GitHub API 代理："
         print_error "  export GITHUB_API_PROXY=https://v6.gh-proxy.org/https://api.github.com"
@@ -199,6 +214,15 @@ get_latest_version() {
     version=$(echo "$release_json" | jq -r '.tag_name')
 
     if [ -z "$version" ] || [ "$version" = "null" ]; then
+        # Xray-core 版本解析失败时使用 fallback
+        if [ "$name" = "Xray-core" ]; then
+            print_warning "GitHub API 返回无效的 $name 版本，使用 fallback 版本: $XRAY_FALLBACK_VERSION"
+            version="$XRAY_FALLBACK_VERSION"
+            filename="Xray-linux-${XRAY_ARCH}.zip"
+            echo "$version"
+            echo "$filename"
+            return
+        fi
         print_error "无法获取 $name 的最新版本号"
         print_error "请检查网络连接或稍后重试"
         exit 1
