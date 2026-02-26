@@ -662,6 +662,46 @@ elif [ -n "\$XRAY_BIN" ]; then
 else
     print_warning "未找到 Xray 二进制文件，跳过 Xray 安装"
 fi
+# 代理工具函数（防止双层嵌套）
+normalize_proxy_value() {
+    local proxy="\$1"
+    while [[ -n "\$proxy" && "\$proxy" == */ ]]; do
+        proxy="\${proxy%/}"
+    done
+    printf '%s' "\$proxy"
+}
+
+strip_existing_proxy_prefix() {
+    local url="\$1"
+    local proxy="\$2"
+
+    if [ -z "\$proxy" ]; then
+        printf '%s' "\$url"
+        return
+    fi
+
+    proxy=\$(normalize_proxy_value "\$proxy")
+    local prefix="\${proxy}/"
+    while [[ "\$url" == "\$prefix"* ]]; do
+        url="\${url#\${prefix}}"
+    done
+
+    printf '%s' "\$url"
+}
+
+wrap_with_proxy() {
+    local proxy="\$1"
+    local raw_url="\$2"
+
+    if [ -z "\$proxy" ]; then
+        printf '%s\n' "\$raw_url"
+        return
+    fi
+
+    proxy=\$(normalize_proxy_value "\$proxy")
+    raw_url=\$(strip_existing_proxy_prefix "\$raw_url" "\$proxy")
+    printf '%s/%s\n' "\$proxy" "\$raw_url"
+}
 
 # 步骤 3: 下载 geoip.dat 和 geosite.dat
 print_info "步骤 3: 下载 geoip.dat 和 geosite.dat"
@@ -843,45 +883,45 @@ cd "$TEMP_DIR"
 
 # 规范化代理值（去掉末尾 /）
 normalize_proxy_value() {
-    local proxy="\$1"
-    while [[ -n "\$proxy" && "\$proxy" == */ ]]; do
-        proxy="\${proxy%/}"
+    local proxy="$1"
+    while [[ -n "$proxy" && "$proxy" == */ ]]; do
+        proxy="${proxy%/}"
     done
-    printf '%s' "\$proxy"
+    printf '%s' "$proxy"
 }
 
 # 剥离 URL 中已存在的代理前缀
 strip_existing_proxy_prefix() {
-    local url="\$1"
-    local proxy="\$2"
+    local url="$1"
+    local proxy="$2"
 
-    if [ -z "\$proxy" ]; then
-        printf '%s' "\$url"
+    if [ -z "$proxy" ]; then
+        printf '%s' "$url"
         return
     fi
 
-    proxy=\$(normalize_proxy_value "\$proxy")
-    local prefix="\${proxy}/"
-    while [[ "\$url" == "\$prefix"* ]]; do
-        url="\${url#\${prefix}}"
+    proxy=$(normalize_proxy_value "$proxy")
+    local prefix="${proxy}/"
+    while [[ "$url" == "$prefix"* ]]; do
+        url="${url#${prefix}}"
     done
 
-    printf '%s' "\$url"
+    printf '%s' "$url"
 }
 
 # 安全地包装 URL（避免多层嵌套）
 wrap_with_proxy() {
-    local proxy="\$1"
-    local raw_url="\$2"
+    local proxy="$1"
+    local raw_url="$2"
 
-    if [ -z "\$proxy" ]; then
-        printf '%s\n' "\$raw_url"
+    if [ -z "$proxy" ]; then
+        printf '%s\n' "$raw_url"
         return
     fi
 
-    proxy=\$(normalize_proxy_value "\$proxy")
-    raw_url=\$(strip_existing_proxy_prefix "\$raw_url" "\$proxy")
-    printf '%s/%s\n' "\$proxy" "\$raw_url"
+    proxy=$(normalize_proxy_value "$proxy")
+    raw_url=$(strip_existing_proxy_prefix "$raw_url" "$proxy")
+    printf '%s/%s\n' "$proxy" "$raw_url"
 }
 
 # 规范化下载代理值
