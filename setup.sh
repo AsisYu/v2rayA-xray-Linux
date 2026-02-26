@@ -797,4 +797,6 @@ generate_install_script "$V2RAYA_FILE" "$V2RAYA_VERSION" "$XRAY_VERSION"
 
 # 执行安装脚本
 print_info "开始执行安装脚本..."
+# 导出环境变量给安装脚本
+export GITHUB_API_PROXY GITHUB_DOWNLOAD_PROXY
 bash install_v2raya_simple.sh
