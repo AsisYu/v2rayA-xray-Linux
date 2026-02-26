@@ -438,7 +438,7 @@ strip_existing_proxy_prefix() {
         return
     fi
 
-    proxy=$(normalize_proxy_value "\$proxy")
+    proxy=\$(normalize_proxy_value "\$proxy")
     local prefix="\${proxy}/"
     while [[ "\$url" == "\$prefix"* ]]; do
         url="\${url#\${prefix}}"
@@ -456,8 +456,8 @@ wrap_with_proxy() {
         return
     fi
 
-    proxy=$(normalize_proxy_value "\$proxy")
-    raw_url=$(strip_existing_proxy_prefix "\$raw_url" "\$proxy")
+    proxy=\$(normalize_proxy_value "\$proxy")
+    raw_url=\$(strip_existing_proxy_prefix "\$raw_url" "\$proxy")
     printf '%s/%s\n' "\$proxy" "\$raw_url"
 }
 \n
@@ -479,7 +479,7 @@ fi
 
 # 检查是否设置了 GitHub 下载代理
 if [ -n "\$GITHUB_DOWNLOAD_PROXY" ]; then
-    DOWNLOAD_PROXY=$(normalize_proxy_value "\$GITHUB_DOWNLOAD_PROXY")
+    DOWNLOAD_PROXY=\$(normalize_proxy_value "\$GITHUB_DOWNLOAD_PROXY")
     print_info "使用 GitHub 下载代理"
 else
     DOWNLOAD_PROXY=""
@@ -489,12 +489,13 @@ fi
 # 下载 geoip.dat
 GEOIP_BASE_URL="https://github.com/Loyalsoldier/v2ray-rules-dat/releases/latest/download/geoip.dat"
 if [ -n "\$DOWNLOAD_PROXY" ]; then
-    GEOIP_URL=$(wrap_with_proxy "\$DOWNLOAD_PROXY" "\$GEOIP_BASE_URL")
+    GEOIP_URL=\$(wrap_with_proxy "\$DOWNLOAD_PROXY" "\$GEOIP_BASE_URL")
 else
     GEOIP_URL="\$GEOIP_BASE_URL"
 fi
 
 print_info "下载 geoip.dat..."
+print_info "geoip.dat URL: \$GEOIP_URL"
 if command -v curl &> /dev/null; then
     curl -fsSL --max-time 300 "\$GEOIP_URL" -o "\$V2RAYA_DIR/geoip.dat"
 elif command -v wget &> /dev/null; then
@@ -506,12 +507,13 @@ fi
 # 下载 geosite.dat
 GEOSITE_BASE_URL="https://github.com/Loyalsoldier/v2ray-rules-dat/releases/latest/download/geosite.dat"
 if [ -n "\$DOWNLOAD_PROXY" ]; then
-    GEOSITE_URL=$(wrap_with_proxy "\$DOWNLOAD_PROXY" "\$GEOSITE_BASE_URL")
+    GEOSITE_URL=\$(wrap_with_proxy "\$DOWNLOAD_PROXY" "\$GEOSITE_BASE_URL")
 else
     GEOSITE_URL="\$GEOSITE_BASE_URL"
 fi
 
 print_info "下载 geosite.dat..."
+print_info "geosite.dat URL: \$GEOSITE_URL"
 if command -v curl &> /dev/null; then
     curl -fsSL --max-time 300 "\$GEOSITE_URL" -o "\$V2RAYA_DIR/geosite.dat"
 elif command -v wget &> /dev/null; then
@@ -678,7 +680,7 @@ fi
 
 # 检查是否设置了 GitHub 下载代理
 if [ -n "\$GITHUB_DOWNLOAD_PROXY" ]; then
-    DOWNLOAD_PROXY=$(normalize_proxy_value "\$GITHUB_DOWNLOAD_PROXY")
+    DOWNLOAD_PROXY=\$(normalize_proxy_value "\$GITHUB_DOWNLOAD_PROXY")
     print_info "使用 GitHub 下载代理"
 else
     DOWNLOAD_PROXY=""
@@ -688,12 +690,13 @@ fi
 # 下载 geoip.dat
 GEOIP_BASE_URL="https://github.com/Loyalsoldier/v2ray-rules-dat/releases/latest/download/geoip.dat"
 if [ -n "\$DOWNLOAD_PROXY" ]; then
-    GEOIP_URL=$(wrap_with_proxy "\$DOWNLOAD_PROXY" "\$GEOIP_BASE_URL")
+    GEOIP_URL=\$(wrap_with_proxy "\$DOWNLOAD_PROXY" "\$GEOIP_BASE_URL")
 else
     GEOIP_URL="\$GEOIP_BASE_URL"
 fi
 
 print_info "下载 geoip.dat..."
+print_info "geoip.dat URL: \$GEOIP_URL"
 if command -v curl &> /dev/null; then
     curl -fsSL --max-time 300 "\$GEOIP_URL" -o "\$V2RAYA_DIR/geoip.dat"
 elif command -v wget &> /dev/null; then
@@ -705,12 +708,13 @@ fi
 # 下载 geosite.dat
 GEOSITE_BASE_URL="https://github.com/Loyalsoldier/v2ray-rules-dat/releases/latest/download/geosite.dat"
 if [ -n "\$DOWNLOAD_PROXY" ]; then
-    GEOSITE_URL=$(wrap_with_proxy "\$DOWNLOAD_PROXY" "\$GEOSITE_BASE_URL")
+    GEOSITE_URL=\$(wrap_with_proxy "\$DOWNLOAD_PROXY" "\$GEOSITE_BASE_URL")
 else
     GEOSITE_URL="\$GEOSITE_BASE_URL"
 fi
 
 print_info "下载 geosite.dat..."
+print_info "geosite.dat URL: \$GEOSITE_URL"
 if command -v curl &> /dev/null; then
     curl -fsSL --max-time 300 "\$GEOSITE_URL" -o "\$V2RAYA_DIR/geosite.dat"
 elif command -v wget &> /dev/null; then
