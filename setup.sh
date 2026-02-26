@@ -73,8 +73,8 @@ detect_os() {
             OS_TYPE="rpm"
             # CentOS 8/RHEL 8+ 使用 dnf
             # 提取主版本号（处理 8.10 这样的版本号）
-            VERSION_MAJOR=$(echo "\$VERSION_ID" | cut -d. -f1)
-            if [ "\$VERSION_MAJOR" -ge "8" ] || [ "\$ID" = "fedora" ] || [ "\$ID" = "rocky" ] || [ "\$ID" = "almalinux" ]; then
+            VERSION_MAJOR=$(echo "$VERSION_ID" | cut -d. -f1)
+            if [ "$VERSION_MAJOR" -ge "8" ] || [ "$ID" = "fedora" ] || [ "$ID" = "rocky" ] || [ "$ID" = "almalinux" ]; then
                 PKG_MGR="dnf"
             else
                 PKG_MGR="yum"
@@ -559,6 +559,36 @@ else
     print_info "v2rayA 安装完成"
 fi
 
+# 步骤 2: 安装 Xray
+print_info "步骤 2: 安装 Xray"
+
+XRAY_BIN=""
+if command -v xray &> /dev/null; then
+    XRAY_BIN=$(command -v xray)
+    print_info "检测到已安装的 Xray: \$XRAY_BIN"
+elif [ -f "/usr/bin/xray" ]; then
+    XRAY_BIN="/usr/bin/xray"
+elif [ -f "/usr/local/bin/xray" ]; then
+    XRAY_BIN="/usr/local/bin/xray"
+fi
+
+if [ -d "xray" ]; then
+    if [ -n "\$XRAY_BIN" ]; then
+        TARGET_DIR=\$(dirname "\$XRAY_BIN")
+    else
+        TARGET_DIR="/usr/local/bin"
+    fi
+    print_info "安装 Xray-core 二进制文件到 \$TARGET_DIR..."
+    install -m 755 xray/xray "\$TARGET_DIR/xray" 2>/dev/null || \
+        install -m 755 xray/Xray "\$TARGET_DIR/xray" 2>/dev/null || {
+        print_error "无法安装 Xray 二进制文件"
+        exit 1
+    }
+    XRAY_BIN="\$TARGET_DIR/xray"
+    print_info "Xray-core 安装完成: \$XRAY_BIN"
+elif [ -n "\$XRAY_BIN" ]; then
+    print_info "使用系统已有的 Xray: \$XRAY_BIN"
+else
     print_warning "未找到 Xray 二进制文件，跳过 Xray 安装"
 fi
 
