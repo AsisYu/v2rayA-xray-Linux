@@ -460,7 +460,6 @@ wrap_with_proxy() {
     raw_url=\$(strip_existing_proxy_prefix "\$raw_url" "\$proxy")
     printf '%s/%s\n' "\$proxy" "\$raw_url"
 }
-\n
 
 # 步骤 3: 下载 geoip.dat 和 geosite.dat
 print_info "步骤 3: 下载 geoip.dat 和 geosite.dat"
