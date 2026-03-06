@@ -41,21 +41,30 @@ curl -fsSL https://raw.githubusercontent.com/AsisYu/v2rayA-xray-Linux/main/setup
 
 ### 国内服务器（使用 GitHub 加速）
 
+> **注意**：Ubuntu 25.10 的 `sudo` 默认忽略 `-E`，而且 `env … sudo -E bash` 只把变量传给 `sudo` 自己。请选择与当前权限匹配的命令：
+
+#### root 用户（已经是 `root@…` 提示符）
+
 ```bash
-# 方式一：先 export 再运行（推荐）
+# 方式一：先 export 再运行
 export GITHUB_API_PROXY=https://v6.gh-proxy.org/https://api.github.com
 export GITHUB_DOWNLOAD_PROXY=https://v6.gh-proxy.org
-curl -fsSL https://v6.gh-proxy.org/https://raw.githubusercontent.com/AsisYu/v2rayA-xray-Linux/main/setup.sh | sudo -E bash
+curl -fsSL https://v6.gh-proxy.org/https://raw.githubusercontent.com/AsisYu/v2rayA-xray-Linux/main/setup.sh | bash
 
-# 方式二：使用 env 前缀传递环境变量
-curl -fsSL https://v6.gh-proxy.org/https://raw.githubusercontent.com/AsisYu/v2rayA-xray-Linux/main/setup.sh | env GITHUB_API_PROXY=https://v6.gh-proxy.org/https://api.github.com GITHUB_DOWNLOAD_PROXY=https://v6.gh-proxy.org sudo -E bash
+# 方式二：一行命令（推荐）
+curl -fsSL https://v6.gh-proxy.org/https://raw.githubusercontent.com/AsisYu/v2rayA-xray-Linux/main/setup.sh | env GITHUB_API_PROXY=https://v6.gh-proxy.org/https://api.github.com GITHUB_DOWNLOAD_PROXY=https://v6.gh-proxy.org bash
 ```
 
-### 一行命令（国内服务器推荐）
+#### 非 root 用户（需要 sudo）
 
 ```bash
-# 注意：管道 (|) 后的 bash 无法获取前面的环境变量，需使用 env 前缀
-curl -fsSL https://v6.gh-proxy.org/https://raw.githubusercontent.com/AsisYu/v2rayA-xray-Linux/main/setup.sh | env GITHUB_API_PROXY=https://v6.gh-proxy.org/https://api.github.com GITHUB_DOWNLOAD_PROXY=https://v6.gh-proxy.org sudo -E bash
+# 方式一：先 export 再运行
+export GITHUB_API_PROXY=https://v6.gh-proxy.org/https://api.github.com
+export GITHUB_DOWNLOAD_PROXY=https://v6.gh-proxy.org
+curl -fsSL https://v6.gh-proxy.org/https://raw.githubusercontent.com/AsisYu/v2rayA-xray-Linux/main/setup.sh | sudo env GITHUB_API_PROXY=$GITHUB_API_PROXY GITHUB_DOWNLOAD_PROXY=$GITHUB_DOWNLOAD_PROXY bash
+
+# 方式二：一行命令（推荐）
+curl -fsSL https://v6.gh-proxy.org/https://raw.githubusercontent.com/AsisYu/v2rayA-xray-Linux/main/setup.sh | sudo env GITHUB_API_PROXY=https://v6.gh-proxy.org/https://api.github.com GITHUB_DOWNLOAD_PROXY=https://v6.gh-proxy.org bash
 ```
 
 ## 环境变量配置

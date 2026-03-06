@@ -173,11 +173,11 @@ get_latest_version() {
     else
         api_url="https://api.github.com/repos/${repo}/releases/latest"
         print_warning "未检测到 GITHUB_API_PROXY 环境变量，直接连接 GitHub API"
-        print_warning "如需使用代理，请执行:"
-        print_warning "  export GITHUB_API_PROXY=https://v6.gh-proxy.org/https://api.github.com"
-        print_warning "  export GITHUB_DOWNLOAD_PROXY=https://v6.gh-proxy.org"
-        print_warning "  curl -fsSL ... | sudo -E bash"
-        print_warning "  # 或使用 env 前缀: curl ... | env GITHUB_API_PROXY=... GITHUB_DOWNLOAD_PROXY=... sudo -E bash"
+        print_warning "如需使用代理，请根据当前权限执行:"
+        print_warning "  # root 用户:"
+        print_warning "  curl -fsSL ... | env GITHUB_API_PROXY=https://v6.gh-proxy.org/https://api.github.com GITHUB_DOWNLOAD_PROXY=https://v6.gh-proxy.org bash"
+        print_warning "  # 非 root 用户:"
+        print_warning "  curl -fsSL ... | sudo env GITHUB_API_PROXY=https://v6.gh-proxy.org/https://api.github.com GITHUB_DOWNLOAD_PROXY=https://v6.gh-proxy.org bash"
     fi
 
     # 带重试的 API 调用
