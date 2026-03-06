@@ -464,11 +464,12 @@ wrap_with_proxy() {
 # 步骤 3: 下载 geoip.dat 和 geosite.dat
 print_info "步骤 3: 下载 geoip.dat 和 geosite.dat"
 
-# 数据文件固定在 v2rayA 的资产查找路径 /usr/share/v2ray
+# 数据文件固定在 v2rayA 的资产查找路径 /usr/local/share/v2ray
 # 依据: https://github.com/v2rayA/v2rayA/blob/main/service/core/v2ray/asset/asset.go
-V2RAYA_DIR="/usr/share/v2ray"
+# 查找顺序: $V2RAY_LOCATION_ASSET -> /usr/local/share/v2ray -> /usr/share/v2ray
+V2RAYA_DIR="/usr/local/share/v2ray"
 mkdir -p "\$V2RAYA_DIR"
-XRAY_ASSET_DIR="/usr/share/xray"
+XRAY_ASSET_DIR="/usr/local/share/xray"
 if [ -e "\$XRAY_ASSET_DIR" ] && [ ! -L "\$XRAY_ASSET_DIR" ]; then
     print_warning "检测到已有 \$XRAY_ASSET_DIR，跳过软链接创建"
 else
@@ -706,11 +707,12 @@ wrap_with_proxy() {
 # 步骤 3: 下载 geoip.dat 和 geosite.dat
 print_info "步骤 3: 下载 geoip.dat 和 geosite.dat"
 
-# 数据文件固定在 v2rayA 的资产查找路径 /usr/share/v2ray
+# 数据文件固定在 v2rayA 的资产查找路径 /usr/local/share/v2ray
 # 依据: https://github.com/v2rayA/v2rayA/blob/main/service/core/v2ray/asset/asset.go
-V2RAYA_DIR="/usr/share/v2ray"
+# 查找顺序: $V2RAY_LOCATION_ASSET -> /usr/local/share/v2ray -> /usr/share/v2ray
+V2RAYA_DIR="/usr/local/share/v2ray"
 mkdir -p "\$V2RAYA_DIR"
-XRAY_ASSET_DIR="/usr/share/xray"
+XRAY_ASSET_DIR="/usr/local/share/xray"
 if [ -e "\$XRAY_ASSET_DIR" ] && [ ! -L "\$XRAY_ASSET_DIR" ]; then
     print_warning "检测到已有 \$XRAY_ASSET_DIR，跳过软链接创建"
 else
