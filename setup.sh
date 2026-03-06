@@ -464,17 +464,18 @@ wrap_with_proxy() {
 # 步骤 3: 下载 geoip.dat 和 geosite.dat
 print_info "步骤 3: 下载 geoip.dat 和 geosite.dat"
 
-# 数据文件放在 Xray 所在目录
-if [ -n "\$XRAY_BIN" ]; then
-    V2RAYA_DIR=\$(dirname "\$XRAY_BIN")
-    mkdir -p "\$V2RAYA_DIR"
-    print_info "数据文件目录: \$V2RAYA_DIR"
+# 数据文件固定在 v2rayA 的资产查找路径 /usr/share/v2ray
+# 依据: https://github.com/v2rayA/v2rayA/blob/main/service/core/v2ray/asset/asset.go
+V2RAYA_DIR="/usr/share/v2ray"
+mkdir -p "\$V2RAYA_DIR"
+XRAY_ASSET_DIR="/usr/share/xray"
+if [ -e "\$XRAY_ASSET_DIR" ] && [ ! -L "\$XRAY_ASSET_DIR" ]; then
+    print_warning "检测到已有 \$XRAY_ASSET_DIR，跳过软链接创建"
 else
-    # XRAY_BIN 为空时，使用默认目录
-    V2RAYA_DIR="/usr/local/bin"
-    mkdir -p "\$V2RAYA_DIR"
-    print_info "数据文件目录: \$V2RAYA_DIR（默认）"
+    ln -sfn "\$V2RAYA_DIR" "\$XRAY_ASSET_DIR"
+    print_info "创建兼容软链接: \$XRAY_ASSET_DIR -> \$V2RAYA_DIR"
 fi
+print_info "数据文件目录: \$V2RAYA_DIR"
 
 # 检查是否设置了 GitHub 下载代理
 if [ -n "\$GITHUB_DOWNLOAD_PROXY" ]; then
@@ -705,17 +706,18 @@ wrap_with_proxy() {
 # 步骤 3: 下载 geoip.dat 和 geosite.dat
 print_info "步骤 3: 下载 geoip.dat 和 geosite.dat"
 
-# 数据文件放在 Xray 所在目录
-if [ -n "\$XRAY_BIN" ]; then
-    V2RAYA_DIR=\$(dirname "\$XRAY_BIN")
-    mkdir -p "\$V2RAYA_DIR"
-    print_info "数据文件目录: \$V2RAYA_DIR"
+# 数据文件固定在 v2rayA 的资产查找路径 /usr/share/v2ray
+# 依据: https://github.com/v2rayA/v2rayA/blob/main/service/core/v2ray/asset/asset.go
+V2RAYA_DIR="/usr/share/v2ray"
+mkdir -p "\$V2RAYA_DIR"
+XRAY_ASSET_DIR="/usr/share/xray"
+if [ -e "\$XRAY_ASSET_DIR" ] && [ ! -L "\$XRAY_ASSET_DIR" ]; then
+    print_warning "检测到已有 \$XRAY_ASSET_DIR，跳过软链接创建"
 else
-    # XRAY_BIN 为空时，使用默认目录
-    V2RAYA_DIR="/usr/local/bin"
-    mkdir -p "\$V2RAYA_DIR"
-    print_info "数据文件目录: \$V2RAYA_DIR（默认）"
+    ln -sfn "\$V2RAYA_DIR" "\$XRAY_ASSET_DIR"
+    print_info "创建兼容软链接: \$XRAY_ASSET_DIR -> \$V2RAYA_DIR"
 fi
+print_info "数据文件目录: \$V2RAYA_DIR"
 
 # 检查是否设置了 GitHub 下载代理
 if [ -n "\$GITHUB_DOWNLOAD_PROXY" ]; then
