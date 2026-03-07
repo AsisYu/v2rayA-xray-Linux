@@ -14,12 +14,12 @@ curl -fsSL https://raw.githubusercontent.com/AsisYu/v2rayA-xray-Linux/main/setup
 
 **root 用户：**
 ```bash
-curl -fsSL https://v6.gh-proxy.org/https://raw.githubusercontent.com/AsisYu/v2rayA-xray-Linux/main/setup.sh | env GITHUB_API_PROXY=https://v6.gh-proxy.org/https://api.github.com GITHUB_DOWNLOAD_PROXY=https://v6.gh-proxy.org bash
+curl -fsSL https://v6.gh-proxy.org/https://raw.githubusercontent.com/AsisYu/v2rayA-xray-Linux/main/setup.sh | env GITHUB_API_PROXY=https://api.github.com GITHUB_DOWNLOAD_PROXY=https://v6.gh-proxy.org bash
 ```
 
 **非 root 用户：**
 ```bash
-curl -fsSL https://v6.gh-proxy.org/https://raw.githubusercontent.com/AsisYu/v2rayA-xray-Linux/main/setup.sh | sudo env GITHUB_API_PROXY=https://v6.gh-proxy.org/https://api.github.com GITHUB_DOWNLOAD_PROXY=https://v6.gh-proxy.org bash
+curl -fsSL https://v6.gh-proxy.org/https://raw.githubusercontent.com/AsisYu/v2rayA-xray-Linux/main/setup.sh | sudo env GITHUB_API_PROXY=https://api.github.com GITHUB_DOWNLOAD_PROXY=https://v6.gh-proxy.org bash
 ```
 
 ## 支持系统
